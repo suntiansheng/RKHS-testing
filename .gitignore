@@ -1,0 +1,13 @@
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.venv/
+.DS_Store
+*.egg-info/
+runs/
+application/data/
+application/results/
+application/results_integrative_potential/
+results/figures/
+simulation/runs/

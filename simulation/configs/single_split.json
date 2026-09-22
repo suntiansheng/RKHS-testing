@@ -1,0 +1,63 @@
+{
+  "name": "pooled_random_shift_single_split_extension",
+  "seed_base": 8012026,
+  "designs": ["pooled_random_shift"],
+  "scenarios": [
+    "additive",
+    "product",
+    "composition",
+    "friedman",
+    "neural_composition"
+  ],
+  "dimensions": [20, 50],
+  "deltas": [0.0, 0.1, 0.2, 0.3, 0.5, 0.8, 1.2, 1.6, 2.5, 4.0, 6.0, 20.0],
+  "replications": 300,
+  "n": 400,
+  "target_pi": 0.5,
+  "rho": 0.5,
+  "sigma": 1.0,
+  "alpha": 0.05,
+  "bootstrap_draws": 200,
+  "learners": ["gam", "rf", "lasso", "dnn"],
+  "methods": ["orthogonal_single_split"],
+  "propensity_mode": "estimated",
+  "propensity_clip": 0.01,
+  "crossfit_folds": 5,
+  "calibration_n": 100000,
+  "learner_options": {
+    "gam": {
+      "n_knots": 5,
+      "ridge_alphas": [0.01, 0.1, 1.0, 10.0, 100.0]
+    },
+    "rf": {
+      "n_estimators": 400,
+      "max_features": "sqrt",
+      "min_samples_leaf": 5,
+      "max_samples": 0.8,
+      "n_jobs": 1
+    },
+    "lasso": {
+      "cv_folds": 5,
+      "max_iter": 20000,
+      "tol": 0.00001
+    },
+    "dnn": {
+      "device": "auto",
+      "hidden_layers": [32, 16],
+      "dropout": 0.1,
+      "learning_rate": 0.01,
+      "weight_decay": 0.001,
+      "max_epochs": 400,
+      "min_epochs": 20,
+      "patience": 30,
+      "validation_fraction": 0.2,
+      "improvement_tolerance": 0.00001
+    }
+  },
+  "propensity_options": {
+    "cv_folds": 5,
+    "n_knots": 5,
+    "max_iter": 3000,
+    "Cs": [0.001, 0.005, 0.025, 0.125, 0.625, 3.125, 15.625, 78.125]
+  }
+}

@@ -1,0 +1,92 @@
+{
+  "name": "smoke",
+  "seed_base": 8042027,
+  "designs": [
+    "pooled_random_shift"
+  ],
+  "scenarios": [
+    "additive"
+  ],
+  "dimensions": [
+    20
+  ],
+  "deltas": [
+    0.0,
+    0.5
+  ],
+  "replications": 2,
+  "n": 80,
+  "target_pi": 0.5,
+  "rho": 0.5,
+  "sigma": 1.0,
+  "alpha": 0.05,
+  "bootstrap_draws": 19,
+  "learners": [
+    "gam",
+    "rf",
+    "lasso",
+    "dnn",
+    "oracle"
+  ],
+  "methods": [
+    "orthogonal_nosplit",
+    "orthogonal_single_split",
+    "orthogonal_crossfit",
+    "residual",
+    "yan",
+    "oracle_score"
+  ],
+  "propensity_mode": "estimated",
+  "propensity_clip": 0.01,
+  "crossfit_folds": 2,
+  "calibration_n": 5000,
+  "learner_options": {
+    "gam": {
+      "n_knots": 4,
+      "ridge_alphas": [
+        0.1,
+        1.0,
+        10.0
+      ]
+    },
+    "rf": {
+      "n_estimators": 40,
+      "max_features": "sqrt",
+      "min_samples_leaf": 3,
+      "max_samples": 0.8,
+      "n_jobs": 1
+    },
+    "lasso": {
+      "cv_folds": 3,
+      "max_iter": 10000,
+      "tol": 1e-05
+    },
+    "dnn": {
+      "device": "cpu",
+      "hidden_layers": [
+        16,
+        8
+      ],
+      "dropout": 0.1,
+      "learning_rate": 0.01,
+      "weight_decay": 0.001,
+      "max_epochs": 60,
+      "min_epochs": 10,
+      "patience": 8,
+      "validation_fraction": 0.2,
+      "improvement_tolerance": 1e-05
+    }
+  },
+  "propensity_options": {
+    "cv_folds": 3,
+    "n_knots": 4,
+    "max_iter": 2000,
+    "Cs": [
+      0.001,
+      0.01,
+      0.1,
+      1.0,
+      10.0
+    ]
+  }
+}
