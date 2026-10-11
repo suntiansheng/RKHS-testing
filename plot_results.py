@@ -20,11 +20,35 @@ LEARNERS = (
     ("dnn", "DNN"),
 )
 METHODS = (
-    ("orthogonal_nosplit", "Full sample", "#0072B2", "o", "-"),
+    ("orthogonal_nosplit", "NORD", "#0072B2", "o", "-"),
     ("orthogonal_single_split", "Single split", "#D55E00", "s", "-."),
     ("yan", "Yan", "#009E73", "^", ":"),
+    ("gcm", "GCM", "#CC79A7", "D", "--"),
     ("oracle_score", "Oracle", "#333333", None, (0, (5, 2))),
 )
+
+
+def comparison_data(reader=pd.read_csv):
+    """Use matched NORD/GCM reruns and retain the other archived curves."""
+    archived = reader(RESULTS / "frozen_summary.csv")
+    split = reader(RESULTS / "single_split_summary.csv")
+    gcm = reader(RESULTS / "gcm_summary.csv")
+    nord = reader(RESULTS / "gcm_paired_nord_summary.csv")
+    keys = ["scenario", "p", "delta", "learner"]
+    for frame, method in ((gcm, "gcm"), (nord, "orthogonal_nosplit")):
+        if (len(frame) != 384 or not frame.method.eq(method).all()
+                or not frame.n_valid.eq(300).all() or not frame.n_failed.eq(0).all()
+                or frame.duplicated(keys).any()
+                or frame.size_gate_status.eq("not_evaluated").any()):
+            raise ValueError(f"Complete, size-audited {method} results are required")
+    if set(gcm[keys].itertuples(index=False, name=None)) != set(
+            nord[keys].itertuples(index=False, name=None)):
+        raise ValueError("NORD and GCM grids differ")
+    archived = archived[~(archived.method.eq("orthogonal_nosplit")
+                          & archived.scenario.isin(SCENARIOS))]
+    data = pd.concat([archived, split, gcm, nord], ignore_index=True)
+    return data[data.scenario.isin(SCENARIOS)
+                & data.method.isin([m[0] for m in METHODS])]
 
 
 def save_figure(fig, output, name):
@@ -75,10 +99,10 @@ def power_figure(data, scenario, output):
         handles=handles,
         loc="lower center",
         bbox_to_anchor=(0.52, 0.015),
-        ncol=4,
+        ncol=5,
         frameon=False,
-        handlelength=2.3,
-        columnspacing=1.8,
+        handlelength=2.0,
+        columnspacing=1.4,
     )
     fig.subplots_adjust(
         left=0.075, right=0.995, bottom=0.25, top=0.92, wspace=0.16, hspace=0.39
@@ -90,8 +114,8 @@ def power_figure(data, scenario, output):
 def interpolation_figure(data, output):
     fig, ax = plt.subplots(figsize=(5.8, 3.2))
     for method, label, color, marker, style in (
-        ("distance_full", "Full sample", "#0072B2", "o", "-"),
-        ("distance_crossfit", "Five-fold cross-fit", "#CC79A7", "D", "--"),
+        ("distance_full", "NORD", "#0072B2", "o", "-"),
+        ("distance_crossfit", "CF-NORD ($K=5$)", "#CC79A7", "D", "--"),
         ("oracle", "Oracle", "#333333", "s", ":"),
     ):
         points = data[data.method == method].sort_values("amplitude")
@@ -135,7 +159,7 @@ def interpolation_figure(data, output):
     save_figure(fig, output, "simulation_crossfit_interpolation")
 
 
-def main():
+def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "--output",
@@ -143,7 +167,7 @@ def main():
         default=RESULTS / "figures",
         help="output directory (default: results/figures)",
     )
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
     args.output.mkdir(parents=True, exist_ok=True)
     plt.rcParams.update(
         {
@@ -161,16 +185,7 @@ def main():
             "lines.linewidth": 1.2,
         }
     )
-    data = pd.concat(
-        [
-            pd.read_csv(RESULTS / name)
-            for name in ("frozen_summary.csv", "single_split_summary.csv")
-        ],
-        ignore_index=True,
-    )
-    data = data[
-        data.scenario.isin(SCENARIOS) & data.method.isin([m[0] for m in METHODS])
-    ]
+    data = comparison_data()
     passed = data[data.size_gate_status == "pass"]
     for scenario in SCENARIOS:
         power_figure(passed, scenario, args.output)

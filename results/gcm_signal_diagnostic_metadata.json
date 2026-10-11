@@ -1,0 +1,12 @@
+{
+  "calculation": "Frozen reference covariates and their negatives; true e_0 and f; no fitting",
+  "description": "Absolute signed weighted signal mean / weighted absolute signal mean",
+  "output_sha256": "0753affe52c99d0c88f8d84776b4c74567a71337a408fed11eab5679e7048b82",
+  "rows": 8,
+  "source_sha256": {
+    "experiments/gcm_signal_diagnostic.py": "055c8c41fa7f32ebbd34a70a333317e22c2eb1cf04b45e2c016fd18d1e7a1e60",
+    "results/gcm_comparison/calibrations.json": "db95d7d835ff8a8228f62592171de1561f8ed43ab903370ceba9188bd3a525c1",
+    "results/gcm_comparison/protocol.json": "74f381453847973775a207472de2819d1b98aa35493f00d71658048b0e2a2a17",
+    "simulation/simcore.py": "5b1c30d9ca3e860e025be8f9e536811c9062169915cd64f5fc3d9a392dff6519"
+  }
+}

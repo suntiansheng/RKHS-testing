@@ -1,0 +1,22 @@
+{
+  "description": "Compact simulation archives distributed with the v10 reproducibility package.",
+  "sha256": {
+    "crossfit_comparison/n120_n160_k2/config.json": "ff38465c6ddf80387162d5d40cf6afddb985550c4260188fafb280873f86bdb7",
+    "crossfit_comparison/n120_n160_k2/null_size.csv": "eec8cea80191cec7ca0037e6161eaeb9c67be5a1a5748f8f5ffcefe36aa0f211",
+    "crossfit_comparison/n120_n160_k2/paired_differences.csv": "2f15f6a7f941c974aee98bb2107c12a2b79e73071e3acf15560afd54e02674e4",
+    "crossfit_comparison/n120_n160_k2/summary.csv": "606f69a1a967ee34175819960e0db14c88d1051342bdd61fdfe6ebb5f4947f2a",
+    "crossfit_comparison/n120_n160_k2/validation.json": "18199f5e6ce89ab7318bff4c4c999760191cfbba8cc72156817f50d87c20425d",
+    "frozen_summary.csv": "2eaaf1cad2893f3aecfee185a975081ee5946cb8ce585fac305c92f09a2516e5",
+    "gcm_comparison/calibrations.json": "db95d7d835ff8a8228f62592171de1561f8ed43ab903370ceba9188bd3a525c1",
+    "gcm_comparison/protocol.json": "74f381453847973775a207472de2819d1b98aa35493f00d71658048b0e2a2a17",
+    "gcm_main_null_audit.csv": "97d5ca7891c3192a9c81c9db7f0e4c05f33d8780fd9ecc33166418c66b8484ba",
+    "gcm_null_size.csv": "0be80527b2b5e9a2fbb6c1800ec14d90939b908550bec51657673e13dea94f87",
+    "gcm_paired_differences.csv": "e07c7cd2549d360adbf2e8d39a4f100b2749d8ba89a380bea866ca4f77991546",
+    "gcm_paired_nord_summary.csv": "7403084439e8bbec405ab03a826c36728c49466be580e1fd81aafb8f4ddf0166",
+    "gcm_signal_diagnostic.csv": "0753affe52c99d0c88f8d84776b4c74567a71337a408fed11eab5679e7048b82",
+    "gcm_signal_diagnostic_metadata.json": "ab877dbb4ce0765f7d67749b979c3eb88a34521ccc3914fd0153f30b4e070ee8",
+    "gcm_summary.csv": "4ef50725292cbbab5ae84f4e53df0254f1819209679ebc0b621f4ff8b41d10fc",
+    "interpolation.csv": "cc7caf8181f4cd1c20d3d7e21044850e0a04a24b43e9cc159100ee7d07eb6b11",
+    "single_split_summary.csv": "eecd26e3ffe3b5a94a1b540fa941531fbe455d1ef49c2557d2bff713dfa46254"
+  }
+}

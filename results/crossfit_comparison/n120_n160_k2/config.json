@@ -1,0 +1,113 @@
+{
+  "config": {
+    "alpha": 0.05,
+    "amplitudes": [
+      0.0,
+      0.8,
+      1.2,
+      1.6,
+      2.0,
+      2.5,
+      3.2,
+      4.0,
+      6.0
+    ],
+    "bandwidth_squared": 40.0,
+    "bootstrap_draws": 999,
+    "five_fold_sensitivity": false,
+    "fold_scheme": "independent balanced random permutation",
+    "learner_options": {
+      "dnn": {
+        "device": "cpu",
+        "dropout": 0.1,
+        "hidden_layers": [
+          32,
+          16
+        ],
+        "improvement_tolerance": 1e-05,
+        "learning_rate": 0.01,
+        "max_epochs": 400,
+        "min_epochs": 20,
+        "patience": 30,
+        "validation_fraction": 0.2,
+        "weight_decay": 0.001
+      },
+      "gam": {
+        "n_knots": 5,
+        "ridge_alphas": [
+          0.01,
+          0.1,
+          1.0,
+          10.0,
+          100.0
+        ]
+      },
+      "lasso": {
+        "cv_folds": 5,
+        "max_iter": 20000,
+        "tol": 1e-05
+      },
+      "rf": {
+        "max_features": "sqrt",
+        "max_samples": 0.8,
+        "min_samples_leaf": 5,
+        "n_estimators": 400,
+        "n_jobs": 1
+      }
+    },
+    "learners": [
+      "gam",
+      "rf",
+      "lasso",
+      "dnn"
+    ],
+    "null_replications": 2000,
+    "p": 20,
+    "power_replications": 1000,
+    "propensity_clip": 0.01,
+    "propensity_modes": [
+      "estimated",
+      "known"
+    ],
+    "propensity_options": {
+      "Cs": [
+        0.001,
+        0.005,
+        0.025,
+        0.125,
+        0.625,
+        3.125,
+        15.625,
+        78.125
+      ],
+      "cv_folds": 5,
+      "max_iter": 3000,
+      "n_knots": 5
+    },
+    "reference_n": 10000,
+    "rho": 0.5,
+    "sample_sizes": [
+      120,
+      160
+    ],
+    "schema": 1,
+    "seed": 2026100117,
+    "sigma": 1.0
+  },
+  "created_at_utc": "2026-10-07T06:03:03Z",
+  "fingerprint": "2eee29e2df46ea1f7696c5035b7f310f89a61f623e65afa4d9d08a655cdd3cbf",
+  "package_versions": {
+    "cuda_available": "False",
+    "cuda_device": "",
+    "cuda_runtime": "None",
+    "numpy": "1.26.4",
+    "pandas": "2.3.1",
+    "scikit_learn": "1.6.1",
+    "scipy": "1.13.0",
+    "torch": "2.2.2"
+  },
+  "source_hashes": {
+    "driver": "52abb6637561e1d330b406650b9221cd837558f066d00a27626be244af181e11",
+    "simcore": "5b1c30d9ca3e860e025be8f9e536811c9062169915cd64f5fc3d9a392dff6519"
+  }
+}

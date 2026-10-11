@@ -1,0 +1,228 @@
+"""Reproduce the two n=120,160 cross-fit figures used in v10.tex.
+
+Read the completed extension, retain every learner and amplitude, and use its
+original 34-cell null screen. No simulation or nuisance fit is rerun. The
+figure inputs are included in the repository.
+"""
+from __future__ import annotations
+
+import argparse
+import hashlib
+import json
+import os
+from pathlib import Path
+
+os.environ.setdefault("OPENBLAS_NUM_THREADS", "1")
+os.environ.setdefault("OMP_NUM_THREADS", "1")
+os.environ.setdefault("MKL_NUM_THREADS", "1")
+
+import matplotlib
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt
+from matplotlib.lines import Line2D
+import numpy as np
+import pandas as pd
+from scipy.stats import binomtest, norm
+
+ROOT = Path(__file__).resolve().parents[1]
+SIZES = (120, 160)
+LEARNERS = (("gam", "Spline"), ("rf", "Random forest"),
+            ("lasso", "Lasso"), ("dnn", "DNN"))
+BLUE, PINK, GRAY = "#0072B2", "#CC79A7", "#333333"
+STEMS = ("simulation_crossfit_additive_power_difference",
+         "simulation_crossfit_additive_null_size")
+
+
+def sha256(path):
+    return hashlib.sha256(Path(path).read_bytes()).hexdigest()
+
+
+def require(condition, message):
+    if not condition:
+        raise ValueError(message)
+
+
+def load_results(run):
+    config = json.loads((run / "config.json").read_text())["config"]
+    validation = json.loads((run / "validation.json").read_text())
+    require(config["sample_sizes"] == list(SIZES), "Unexpected sample sizes")
+    require(config["null_replications"] == 2000 and config["power_replications"] == 1000,
+            "Unexpected replication counts")
+    require(config["bootstrap_draws"] == 999 and not config["five_fold_sensitivity"],
+            "Unexpected calibration or folds")
+    require(validation["complete"] and validation["null_family_cells"] == 34,
+            "Incomplete extension or unexpected calibration family")
+    summary = pd.read_csv(run / "summary.csv")
+    differences = pd.read_csv(run / "paired_differences.csv")
+    null = pd.read_csv(run / "null_size.csv")
+    require(len(summary) == 306 and len(differences) == 144 and len(null) == 34,
+            "Incomplete figure inputs")
+    for frame in (summary, differences, null):
+        require(set(frame.n) == set(SIZES), "Unexpected rows in figure inputs")
+    require(differences.folds.eq(2).all(), "Non-two-fold comparison")
+    keys = ["n", "learner", "propensity_mode", "amplitude"]
+    require(not differences.duplicated(keys).any(), "Duplicate paired cells")
+    rates = summary[summary.learner.ne("oracle")].pivot(
+        index=keys, columns="method", values="rejection_rate")
+    paired = differences.set_index(keys).loc[rates.index]
+    np.testing.assert_allclose(paired.full_power, rates.full, atol=1e-14)
+    np.testing.assert_allclose(paired.crossfit_power, rates.cf2, atol=1e-14)
+    r = differences.replications.to_numpy()
+    np.testing.assert_array_equal(r, np.where(differences.amplitude.eq(0), 2000, 1000))
+    b = differences.full_only_rejections.to_numpy()
+    c = differences.crossfit_only_rejections.to_numpy()
+    mean = (b - c) / r
+    # d_r is -1, 0, or 1; sum(d_r^2) equals the number of discordant pairs.
+    se = np.sqrt((b + c - r * mean**2) / (r * (r - 1)))
+    np.testing.assert_allclose(mean, differences.full_minus_crossfit, atol=1e-14)
+    np.testing.assert_allclose(se, differences.paired_mc_se, atol=1e-14)
+    np.testing.assert_allclose(mean - norm.ppf(.975) * se, differences.ci_lower, atol=1e-14)
+    np.testing.assert_allclose(mean + norm.ppf(.975) * se, differences.ci_upper, atol=1e-14)
+    # Validate the original screen; do not select panels according to power.
+    pvalues = np.array([binomtest(int(row.rejections), int(row.replications), .05).pvalue
+                       for row in null.itertuples()])
+    order = np.argsort(pvalues)
+    adjusted = np.empty_like(pvalues)
+    adjusted[order] = np.minimum(1., np.maximum.accumulate(
+        pvalues[order] * (len(pvalues) - np.arange(len(pvalues)))))
+    np.testing.assert_allclose(adjusted, null.holm_adjusted_p_value, atol=1e-14)
+    np.testing.assert_array_equal(adjusted <= .05, null.size_screen.eq("flagged"))
+    z = norm.ppf(.975)
+    r = null.replications.to_numpy()
+    p = null.rejection_rate.to_numpy()
+    center = (p + z**2 / (2 * r)) / (1 + z**2 / r)
+    half = z * np.sqrt(p * (1 - p) / r + z**2 / (4 * r**2)) / (1 + z**2 / r)
+    np.testing.assert_allclose(center - half, null.wilson_lower, atol=1e-14)
+    np.testing.assert_allclose(center + half, null.wilson_upper, atol=1e-14)
+    return differences, null
+
+
+def style():
+    plt.rcParams.update({
+        "font.family": "DejaVu Sans", "font.size": 9, "axes.labelsize": 9,
+        "axes.titlesize": 9, "xtick.labelsize": 8, "ytick.labelsize": 8,
+        "legend.fontsize": 8, "axes.spines.top": False, "axes.spines.right": False,
+        "axes.linewidth": .65, "lines.linewidth": 1.5, "pdf.fonttype": 42,
+        "ps.fonttype": 42, "savefig.facecolor": "white", "figure.facecolor": "white",
+    })
+
+
+def save(fig, output, stem):
+    fig.savefig(output / f"{stem}.pdf", bbox_inches="tight", pad_inches=.04)
+    fig.savefig(output / f"{stem}.png", dpi=220, bbox_inches="tight", pad_inches=.04)
+    plt.close(fig)
+
+
+def power_difference(differences, null, output):
+    selected = differences[differences.propensity_mode.eq("estimated")]
+    flagged = null[null.propensity_mode.eq("estimated") & null.size_screen.eq("flagged")]
+    fig, axes = plt.subplots(2, 4, figsize=(7.6, 3.9), sharex=True, sharey=True)
+    for row, n in enumerate(SIZES):
+        for col, (learner, label) in enumerate(LEARNERS):
+            ax = axes[row, col]
+            data = selected[selected.n.eq(n) & selected.learner.eq(learner)].sort_values("amplitude")
+            y = data.full_minus_crossfit
+            ax.errorbar(data.amplitude, y,
+                        yerr=np.vstack([y - data.ci_lower, data.ci_upper - y]),
+                        color=BLUE, marker="o", markersize=3.5, capsize=2,
+                        elinewidth=.9, linewidth=1.4)
+            star = "*" if (flagged.n.eq(n) & flagged.learner.eq(learner)).any() else ""
+            ax.set_title(f"{label}, $n={n}${star}", pad=5)
+            ax.axhline(0, color=".5", linestyle=":", linewidth=.8)
+            ax.grid(axis="y", color=".9", linewidth=.5)
+            ax.set_axisbelow(True)
+            ax.set_xlim(-.1, 6.1)
+            ax.set_ylim(-.06, .20)
+            ax.set_xticks([0, 2, 4, 6])
+            ax.set_yticks([0, .1, .2])
+    fig.supylabel("Power difference", x=.015, fontsize=9)
+    fig.supxlabel("Signal amplitude $a$", y=.135, fontsize=9)
+    handle = Line2D([], [], color=BLUE, marker="o", markersize=4)
+    fig.legend([handle], ["NORD - CF-NORD ($K=2$); pointwise 95% paired intervals"],
+               loc="lower center", bbox_to_anchor=(.51, .049), frameon=False)
+    fig.text(.51, .011, "* CF-NORD null size flagged by the 34-cell Holm screen.",
+             ha="center", fontsize=7, color=".3")
+    fig.subplots_adjust(left=.082, right=.992, top=.92, bottom=.245, wspace=.18, hspace=.57)
+    save(fig, output, STEMS[0])
+
+
+def null_size(null, output):
+    fig, axes = plt.subplots(2, 2, figsize=(6.3, 5.0), sharey=True)
+    specs = (("full", BLUE, "o", -.1), ("cf2", PINK, "D", .1))
+    for row, n in enumerate(SIZES):
+        for col, mode in enumerate(("estimated", "known")):
+            ax = axes[row, col]
+            selected = null[null.n.eq(n) & null.propensity_mode.eq(mode)]
+            for j, (learner, _) in enumerate(LEARNERS):
+                for method, color, marker, offset in specs:
+                    result = selected[selected.learner.eq(learner) & selected.method.eq(method)].iloc[0]
+                    y = result.rejection_rate
+                    ax.errorbar(j + offset, y, yerr=[[y - result.wilson_lower],
+                                                   [result.wilson_upper - y]],
+                                color=color, marker=marker, markersize=4, capsize=3,
+                                elinewidth=.9, linestyle="none")
+                    if result.size_screen == "flagged":
+                        ax.text(j + offset, result.wilson_upper + .0015, "*", color=color,
+                                ha="center", va="bottom", fontsize=10)
+            oracle = null[null.n.eq(n) & null.learner.eq("oracle")].iloc[0]
+            y = oracle.rejection_rate
+            ax.errorbar(4, y, yerr=[[y - oracle.wilson_lower], [oracle.wilson_upper - y]],
+                        color=GRAY, marker="s", markersize=4, capsize=3,
+                        elinewidth=.9, linestyle="none")
+            ax.set_title(f"{mode.capitalize()} propensity, $n={n}$", pad=5)
+            ax.axhline(.05, color=".5", linestyle=":", linewidth=.8)
+            ax.set_ylim(0, .10)
+            ax.set_yticks(np.arange(0, .101, .02))
+            ax.set_xticks(np.arange(5), [label for _, label in LEARNERS] + ["Oracle"],
+                          rotation=16, ha="right")
+            ax.grid(axis="y", color=".9", linewidth=.5)
+            ax.set_axisbelow(True)
+            ax.set_xlim(-.32, 4.2)
+    fig.supylabel("Null rejection rate", x=.015, fontsize=9)
+    handles = [Line2D([], [], color=BLUE, marker="o", markersize=4, label="NORD"),
+               Line2D([], [], color=PINK, marker="D", markersize=4, linestyle="--", label="CF-NORD ($K=2$)"),
+               Line2D([], [], color=GRAY, marker="s", markersize=4, linestyle="--", label="Oracle")]
+    fig.legend(handles=handles, loc="lower center", ncol=3, frameon=False,
+               bbox_to_anchor=(.53, .042))
+    fig.text(.53, .008, "* Null size flagged by the 34-cell Holm screen.",
+             ha="center", fontsize=7, color=".3")
+    fig.subplots_adjust(left=.115, right=.99, bottom=.21, top=.94, wspace=.16, hspace=.69)
+    save(fig, output, STEMS[1])
+
+
+def build(run, output):
+    run, output = Path(run).resolve(), Path(output).resolve()
+    differences, null = load_results(run)
+    output.mkdir(parents=True, exist_ok=True)
+    style()
+    power_difference(differences, null, output)
+    null_size(null, output)
+    names = ["config.json", "validation.json", "summary.csv", "paired_differences.csv", "null_size.csv"]
+    provenance = {
+        "sample_sizes": list(SIZES), "folds": 2,
+        "run": Path(os.path.relpath(run, ROOT)).as_posix(),
+        "null_family_cells": 34,
+        "flagged_null_cells": int(null.size_screen.eq("flagged").sum()),
+        "source_sha256": {name: sha256(run / name) for name in names},
+        "builder_sha256": sha256(__file__),
+        "output_sha256": {f"{stem}.pdf": sha256(output / f"{stem}.pdf") for stem in STEMS},
+        "interval": "Pointwise paired normal interval: mean(d) +/- Phi^-1(.975) * sd(d, ddof=1)/sqrt(R)",
+        "validation": "All paired differences and intervals, Wilson limits, and the original 34-cell Holm screen verified.",
+        "note": "All four learners and all amplitudes retained. Flagged alternatives do not constitute equal-size power comparisons.",
+    }
+    (output / "crossfit_manuscript_validation.json").write_text(json.dumps(provenance, indent=2) + "\n")
+    return provenance
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--run", type=Path, default=ROOT / "results/crossfit_comparison/n120_n160_k2")
+    parser.add_argument("--output", type=Path, default=ROOT / "results/figures")
+    args = parser.parse_args()
+    provenance = build(args.run, args.output)
+    print(json.dumps({"output": str(args.output), "sample_sizes": provenance["sample_sizes"],
+                      "validation": provenance["validation"]}, indent=2))
+
+
+if __name__ == "__main__":
+    main()

@@ -1,0 +1,10 @@
+{
+  "complete": true,
+  "completed_tasks": 4000,
+  "expected_tasks": 4000,
+  "null_cells_flagged": 3,
+  "null_family_cells": 34,
+  "null_family_complete": true,
+  "rows": 340000,
+  "worker_cpu_seconds": 36188.75244494807
+}

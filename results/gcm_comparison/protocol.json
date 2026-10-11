@@ -1,0 +1,116 @@
+{
+  "alpha": 0.05,
+  "bootstrap_draws": 200,
+  "calibration_n": 100000,
+  "crossfit_folds": 5,
+  "deltas": [
+    0.0,
+    0.1,
+    0.2,
+    0.3,
+    0.5,
+    0.8,
+    1.2,
+    1.6,
+    2.5,
+    4.0,
+    6.0,
+    20.0
+  ],
+  "designs": [
+    "pooled_random_shift"
+  ],
+  "dimensions": [
+    20,
+    50
+  ],
+  "gcm_calibration": "two-sided standard normal; equation (3), Shah and Peters (2020)",
+  "learner_options": {
+    "dnn": {
+      "device": "cpu",
+      "dropout": 0.1,
+      "hidden_layers": [
+        32,
+        16
+      ],
+      "improvement_tolerance": 1e-05,
+      "learning_rate": 0.01,
+      "max_epochs": 400,
+      "min_epochs": 20,
+      "patience": 30,
+      "validation_fraction": 0.2,
+      "weight_decay": 0.001
+    },
+    "gam": {
+      "n_knots": 5,
+      "ridge_alphas": [
+        0.01,
+        0.1,
+        1.0,
+        10.0,
+        100.0
+      ]
+    },
+    "lasso": {
+      "cv_folds": 5,
+      "max_iter": 20000,
+      "tol": 1e-05
+    },
+    "rf": {
+      "max_features": "sqrt",
+      "max_samples": 0.8,
+      "min_samples_leaf": 5,
+      "n_estimators": 400,
+      "n_jobs": 1
+    }
+  },
+  "learners": [
+    "gam",
+    "rf",
+    "lasso",
+    "dnn"
+  ],
+  "methods": [
+    "gcm",
+    "orthogonal_nosplit"
+  ],
+  "n": 400,
+  "name": "pooled_random_shift_final",
+  "null_screen": "two-sided exact binomial tests with Holm adjustment across 32 GCM cells",
+  "propensity_clip": 0.01,
+  "propensity_mode": "estimated",
+  "propensity_options": {
+    "Cs": [
+      0.001,
+      0.005,
+      0.025,
+      0.125,
+      0.625,
+      3.125,
+      15.625,
+      78.125
+    ],
+    "cv_folds": 5,
+    "max_iter": 3000,
+    "n_knots": 5
+  },
+  "replications": 300,
+  "reporting": "All results retained; primary curves use the same complete-family size screen as existing figures",
+  "rho": 0.5,
+  "scenarios": [
+    "additive",
+    "product",
+    "composition",
+    "neural_composition"
+  ],
+  "seed_base": 8012026,
+  "sigma": 1.0,
+  "source_sha256": {
+    "experiments/gcm_comparison.py": "f2e64b2e173688f6347471bfc84be7600ba2a2fbfe228386c64c316cffea7f31",
+    "results/frozen_summary.csv": "2eaaf1cad2893f3aecfee185a975081ee5946cb8ce585fac305c92f09a2516e5",
+    "simulation/configs/main.json": "5f9e1c9163ef036df52ee7af42e87bb9529946a3d1983e03dc5c1b690384ee9f",
+    "simulation/gcm.py": "97cd256c74449cd3d0724aa652d3a8943327b8900f3a2209c94a656e5aff5e58",
+    "simulation/simcore.py": "5b1c30d9ca3e860e025be8f9e536811c9062169915cd64f5fc3d9a392dff6519"
+  },
+  "target_pi": 0.5
+}
