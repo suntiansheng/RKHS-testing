@@ -155,10 +155,8 @@ def main():
         phase_progress=phase_progress,
         measured_phase_seconds=sum(p["elapsed_seconds"] for p in phase_progress.values()),
         publication_source_sha256=file_hash(Path(__file__)),
-        note="Figures use matched rerun NORD and GCM. Other curves retain archived estimates. "
-             "Original family membership is retained and the 170-cell screen is recomputed "
-             "with updated NORD counts; the GCM 32-cell and single-split 40-cell families "
-             "remain separate. No original numerical archive is overwritten.")
+        note="Figures use matched rerun NORD and GCM. Other curves use archived estimates. "
+             "Historical null diagnostics are retained in the output tables.")
     atomic_write_json(run / "publication_validation.json", report)
     print(json.dumps(report, indent=2))
 

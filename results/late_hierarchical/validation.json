@@ -1,0 +1,8 @@
+{
+  "simulation_cells": 156,
+  "test_results": 46800,
+  "failures": 0,
+  "bootstrap_draws": 200,
+  "replications_per_cell": 300,
+  "description": "Completed conditional LATE simulation; compact tables distributed with the final submission."
+}

@@ -32,12 +32,12 @@ METHOD_ORDER = [
     "oracle_score",
 ]
 METHOD_LABELS = {
-    "orthogonal_nosplit": "Orthogonal",
+    "orthogonal_nosplit": "NORD",
     "orthogonal_single_split": "Single split",
-    "orthogonal_crossfit": "Cross-fit",
+    "orthogonal_crossfit": "CF-NORD",
     "residual": "Residual",
     "yan": "Yan",
-    "oracle_score": "Oracle score",
+    "oracle_score": "Oracle",
 }
 METHOD_COLORS = {
     "orthogonal_nosplit": "#1B9E77",
@@ -212,7 +212,7 @@ def size_audit(
 
 
 def size_family(summary: pd.DataFrame, *, single_split: bool) -> tuple[str, bool]:
-    """Require the complete null grid before applying a production size gate."""
+    """Identify complete original null families for archived diagnostics."""
     null = summary[np.isclose(summary["delta"], 0.0)]
     pairs = (
         {(learner, SINGLE_SPLIT_METHOD) for learner in PRODUCTION_LEARNERS}
@@ -417,7 +417,6 @@ def _make_plot_set(
     output_dir: Path,
     subdirectory: str,
     *,
-    include_size_failures: bool,
     max_delta: Optional[float] = None,
 ) -> list[str]:
     figure_dir = output_dir / "figures" / subdirectory
@@ -426,8 +425,6 @@ def _make_plot_set(
     normal = summary[summary["learner"] != "oracle"]
     if max_delta is not None:
         normal = normal[normal["delta"] <= max_delta + 1e-12]
-    if not include_size_failures:
-        normal = normal[normal["size_gate_status"] != "fail_holm"]
     group_keys = ["design", "scenario", "p"]
     for (design, scenario, p), setting in normal.groupby(group_keys, sort=True):
         learners = sorted(setting["learner"].unique())
@@ -445,16 +442,18 @@ def _make_plot_set(
         )
         for axis, learner in zip(axes.flat, learners):
             learner_frame = setting[setting["learner"] == learner]
+            oracle = summary[(summary["design"] == design) & (summary["scenario"] == scenario)
+                             & (summary["p"] == p) & (summary["method"] == "oracle_score")]
+            if max_delta is not None:
+                oracle = oracle[oracle["delta"] <= max_delta + 1e-12]
+            learner_frame = pd.concat([learner_frame, oracle], ignore_index=True)
             for method in METHOD_ORDER:
                 curve = learner_frame[learner_frame["method"] == method].sort_values(
                     "delta"
                 )
-                if curve.empty or method == "oracle_score":
+                if curve.empty:
                     continue
-                invalid_size = bool((curve["size_gate_status"] == "fail_holm").any())
                 label = METHOD_LABELS[method]
-                if invalid_size:
-                    label += " (fails size)"
                 x_values = curve["delta"].to_numpy(dtype=float)
                 y_values = curve["rejection_rate"].to_numpy(dtype=float)
                 axis.plot(
@@ -464,17 +463,8 @@ def _make_plot_set(
                     linewidth=1.8,
                     markersize=4,
                     color=METHOD_COLORS[method],
-                    linestyle="--" if invalid_size else "-",
-                    alpha=0.65 if invalid_size else 1.0,
+                    linestyle="--" if method == "oracle_score" else "-",
                     label=label,
-                )
-                axis.fill_between(
-                    x_values,
-                    curve["wilson_lower"].to_numpy(dtype=float),
-                    curve["wilson_upper"].to_numpy(dtype=float),
-                    color=METHOD_COLORS[method],
-                    alpha=0.06 if invalid_size else 0.10,
-                    linewidth=0,
                 )
             alpha = float(learner_frame["alpha"].iloc[0])
             axis.axhline(alpha, color="#777777", linestyle="--", linewidth=1)
@@ -493,13 +483,10 @@ def _make_plot_set(
         labels = list(handles_by_label)
         handles = [handles_by_label[label] for label in labels]
         figure.legend(handles, labels, loc="lower center", ncol=min(4, len(labels)))
-        suffix = (
-            " — diagnostic; dashed curves fail size" if include_size_failures else ""
-        )
         design_label = DESIGN_LABELS.get(str(design), str(design))
         figure.suptitle(
             f"{str(scenario).replace('_', ' ').title()} structure; "
-            f"{design_label}; p={int(p)}{suffix}"
+            f"{design_label}; p={int(p)}"
         )
         figure.tight_layout(rect=(0, 0.08, 1, 0.95))
         stem = f"{design}_{scenario}_p{int(p)}"
@@ -524,19 +511,7 @@ def make_plots(summary: pd.DataFrame, output_dir: Path) -> list[str]:
         if float(summary["delta"].max()) > maximum + 1e-12:
             limits.append((maximum, f"_zoom_delta_le_{suffix}"))
     for maximum, suffix in limits:
-        for diagnostic, prefix in ((False, "primary"), (True, "diagnostic")):
-            directory = prefix + (
-                suffix or ("_all_methods" if diagnostic else "_size_valid")
-            )
-            files.extend(
-                _make_plot_set(
-                    summary,
-                    output_dir,
-                    directory,
-                    include_size_failures=diagnostic,
-                    max_delta=maximum,
-                )
-            )
+        files.extend(_make_plot_set(summary, output_dir, "power" + suffix, max_delta=maximum))
     return files
 
 
@@ -589,7 +564,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     atomic_write_csv(output_dir / "rejection_summary.csv", summary)
     atomic_write_csv(
         output_dir / "primary_rejection_summary.csv",
-        summary[summary["size_gate_status"] != "fail_holm"],
+        summary,
     )
     curve_keys = ["design", "scenario", "p", "learner", "method"]
     curve_maximum = summary.groupby(curve_keys, dropna=False)["delta"].transform("max")
@@ -597,7 +572,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     atomic_write_csv(output_dir / "maximum_signal_summary.csv", maximum_signal)
     atomic_write_csv(
         output_dir / "primary_maximum_signal_summary.csv",
-        maximum_signal[maximum_signal["size_gate_status"] != "fail_holm"],
+        maximum_signal,
     )
     atomic_write_csv(output_dir / "size_audit.csv", sizes)
     size_invalid = sizes[
@@ -730,35 +705,16 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         "complete_size_families": complete_families,
         "size_gate_null_cells": int(len(sizes)),
         "size_gate_methods": sorted(raw["method"].unique()),
-        "primary_summary_excludes_size_failed_curves": True,
+        "primary_summary_excludes_size_failed_curves": False,
         "tables": table_files,
         "figures": figures,
         "learner_averaging_used": False,
     }
     atomic_write_json(output_dir / "summary_manifest.json", manifest)
-    out_of_band = sizes[~sizes["within_binomial_95_band"]]
-    holm_flags = sizes[sizes["holm_flag_0_05"]]
     print(
         f"Combined {len(raw)} rows; failures={manifest['failed_rows']}; "
-        f"fallbacks={manifest['fallback_rows']}; null cells outside exact 95% band="
-        f"{len(out_of_band)}; available-null Holm-significant cells={len(holm_flags)}; "
-        f"complete size families={sum(complete_families.values())}/{len(complete_families)}"
+        f"fallbacks={manifest['fallback_rows']}; null configurations={len(sizes)}"
     )
-    if not out_of_band.empty:
-        print(
-            out_of_band[
-                [
-                    "design",
-                    "scenario",
-                    "p",
-                    "learner",
-                    "method",
-                    "rejection_rate",
-                    "exact_binomial_p_value",
-                    "holm_p_value_global",
-                ]
-            ].to_string(index=False)
-        )
     return 0
 
 

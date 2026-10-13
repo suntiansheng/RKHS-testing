@@ -1,53 +1,49 @@
-# Simulation archives
+# Archived results
 
-These files are the inputs to `python reproduce_figures.py`. The command checks
-their SHA-256 hashes against `manifest.json` before rendering the seven
-simulation figures used by `v10.tex`. All files are compact summaries or run
-specifications; raw Monte Carlo draws and fitted models are not included.
+`python reproduce_figures.py` renders all 14 figure assets in the final JRSSB
+main paper and supplement. It verifies SHA-256 hashes in `manifest.json` before
+reading the supplied tables. This path regenerates figures from completed runs;
+it does not refit learners or rerun Monte Carlo experiments.
 
 | Files | Contents |
 | --- | --- |
-| `frozen_summary.csv` | Original main grid, including the 170-cell null-screening family and undisplayed configurations |
-| `single_split_summary.csv` | Single-split experiment and its separate 40-cell null family |
-| `gcm_summary.csv`, `gcm_paired_nord_summary.csv` | Matched GCM and NORD results: 384 cells per procedure, 300 replications per cell |
-| `gcm_null_size.csv`, `gcm_main_null_audit.csv` | GCM's 32-cell null screen and the refreshed 170-cell NORD family |
-| `gcm_paired_differences.csv` | Paired NORD-minus-GCM rejection differences and Monte Carlo intervals |
-| `gcm_signal_diagnostic.csv`, `gcm_signal_diagnostic_metadata.json` | True-signal cancellation diagnostic and calculation metadata |
-| `gcm_comparison/` | Protocol and reference-sample calibration used by the signal diagnostic |
-| `interpolation.csv` | Twelve interpolation cells, with 500 replications each |
-| `crossfit_comparison/n120_n160_k2/` | Configuration, completion record, 306 summary cells, 144 paired comparisons, and 34 null cells |
+| `frozen_summary.csv`, `single_split_summary.csv` | Original regression-test and single-split summaries |
+| `gcm_summary.csv`, `gcm_paired_nord_summary.csv` | Matched GCM and NORD summaries, each with 384 cells and 300 replications per cell |
+| `gcm_paired_differences.csv` | Paired NORD-minus-GCM rejection differences |
+| `gcm_signal_diagnostic.csv`, `gcm_signal_diagnostic_metadata.json`, `gcm_comparison/` | Signal-cancellation calculations, protocol and reference-sample calibration |
+| `interpolation.csv` | Twelve cells with 500 replications and 199 multiplier draws each |
+| `crossfit_comparison/n120_n160_k2/` | Configuration, completion record, 306 summary cells, 144 paired differences and 34 null rates |
+| `cate_hierarchical/`, `late_hierarchical/` | Each experiment's 156 rejection-rate cells, 13 null rates, paired differences and run validation |
+| `casino/` | The 136 joint-application tests, sample counts, selection-overlap summaries, run metadata and word-frequency summaries |
 
-## Figure inputs
+## Figure provenance
 
-The additive, product, composition, and hierarchical figures use the matched
-NORD/GCM summaries. Single-split, Yan, and oracle curves come from the original
-archives. NORD and GCM therefore share fitted scores; the single-split comparison
-was run separately. These numerical comparisons should not be described as
-paired across every method.
+The additive, product, composition and hierarchical figures use matched NORD/GCM
+reruns. Single-split, Yan and oracle curves come from the original simulations.
+NORD and GCM share fitted scores; the original single-split comparison was run
+separately. CATE and LATE each compute one oracle per dataset, reused across the
+four learner panels. The interpolating-learner archive uses 199 multipliers;
+the main regression, CATE and LATE experiments use 200, and the regularized
+cross-fitting comparison uses 999.
 
-Null screens use two-sided exact binomial tests with Holm correction at level
-0.05. The 170-cell main, 40-cell single-split, and 32-cell GCM families remain
-separate. Curves failing these complete screens are omitted from the four main
-power figures. The two regularized cross-fit figures retain all cells and mark
-the failures of their separate 34-cell screen. Monte Carlo intervals are
-pointwise. Passing a screen does not establish population size control.
+The CaSiNo comparison tables come from the completed `casino-baseline-plus-text-v1`
+analysis. `casino/analysis_plan.json` records its data and source hashes;
+`casino/analysis_summary.json` records completion and software versions. The
+word table is the completed opening-text analysis on the same participant-disjoint
+main sample. It contains aggregate counts and bootstrap summaries, not dialogue
+text or participant-level data. The archived scripts used to produce the runs
+predate packaging changes, so their historical source hashes are retained as
+provenance rather than treated as current-source checksums.
 
-## Interpolation multiplier count
+The archives retain older diagnostic columns and additional configurations from
+the original runs. Figure builders select the designs and procedures reported
+in the final manuscript. No model fitting or manuscript files are needed.
 
-The archived interpolation run and its supplied figure used 199 Gaussian
-multiplier draws. The interpolation paragraph in `v10.tex` states 200. This
-package preserves the archived results and documents the difference.
+## Recompute results
 
-`experiments/interpolation.py --bootstrap-draws 199` uses the archived setting;
-`--bootstrap-draws 200` uses the manuscript's stated setting. Use a separate
-output directory when changing the draw count. The main regression grids use
-200 draws and the regularized cross-fit comparison uses 999 draws.
-
-## Recomputing results
-
-The experiment READMEs give commands for refitting and checkpoint validation.
-Fresh simulations write to `runs/`; they do not replace the supplied archives
-unless a publication command is explicitly run. The archive manifest records
-the distributed results, so changed summary files must be checked before
-updating their hashes. Plot freshly recomputed results through the corresponding
-experiment plotter while keeping the supplied archive intact.
+The root and experiment READMEs give full rerun commands. Fresh simulations write
+to `runs/`; keep these separate from the supplied archives. The CATE and LATE
+report manifests describe their original replication-level inputs, which are
+excluded from this compact distribution. Full reruns regenerate those inputs,
+checkpoints, diagnostic records and reports. `manifest.json` is the integrity
+record for files actually distributed here.

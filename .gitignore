@@ -11,3 +11,13 @@ application/results/
 application/results_integrative_potential/
 results/figures/
 simulation/runs/
+
+# Local working notes and replication-level archives.
+experiments/*_plan.md
+plot_v9_nord.py
+results/cate_hierarchical/*.gz
+results/late_hierarchical/*.gz
+results/cate_hierarchical/*.pdf
+results/cate_hierarchical/*.png
+results/late_hierarchical/*.pdf
+results/late_hierarchical/*.png

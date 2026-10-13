@@ -1,7 +1,7 @@
-"""Reproduce the two n=120,160 cross-fit figures used in v10.tex.
+"""Reproduce the two n=120,160 cross-fit figures used in the supplement.
 
 Read the completed extension, retain every learner and amplitude, and use its
-original 34-cell null screen. No simulation or nuisance fit is rerun. The
+archived numerical validation. No simulation or nuisance fit is rerun. The
 figure inputs are included in the repository.
 """
 from __future__ import annotations
@@ -113,9 +113,8 @@ def save(fig, output, stem):
     plt.close(fig)
 
 
-def power_difference(differences, null, output):
+def power_difference(differences, output):
     selected = differences[differences.propensity_mode.eq("estimated")]
-    flagged = null[null.propensity_mode.eq("estimated") & null.size_screen.eq("flagged")]
     fig, axes = plt.subplots(2, 4, figsize=(7.6, 3.9), sharex=True, sharey=True)
     for row, n in enumerate(SIZES):
         for col, (learner, label) in enumerate(LEARNERS):
@@ -126,8 +125,7 @@ def power_difference(differences, null, output):
                         yerr=np.vstack([y - data.ci_lower, data.ci_upper - y]),
                         color=BLUE, marker="o", markersize=3.5, capsize=2,
                         elinewidth=.9, linewidth=1.4)
-            star = "*" if (flagged.n.eq(n) & flagged.learner.eq(learner)).any() else ""
-            ax.set_title(f"{label}, $n={n}${star}", pad=5)
+            ax.set_title(f"{label}, $n={n}$", pad=5)
             ax.axhline(0, color=".5", linestyle=":", linewidth=.8)
             ax.grid(axis="y", color=".9", linewidth=.5)
             ax.set_axisbelow(True)
@@ -140,8 +138,6 @@ def power_difference(differences, null, output):
     handle = Line2D([], [], color=BLUE, marker="o", markersize=4)
     fig.legend([handle], ["NORD - CF-NORD ($K=2$); pointwise 95% paired intervals"],
                loc="lower center", bbox_to_anchor=(.51, .049), frameon=False)
-    fig.text(.51, .011, "* CF-NORD null size flagged by the 34-cell Holm screen.",
-             ha="center", fontsize=7, color=".3")
     fig.subplots_adjust(left=.082, right=.992, top=.92, bottom=.245, wspace=.18, hspace=.57)
     save(fig, output, STEMS[0])
 
@@ -161,9 +157,6 @@ def null_size(null, output):
                                                    [result.wilson_upper - y]],
                                 color=color, marker=marker, markersize=4, capsize=3,
                                 elinewidth=.9, linestyle="none")
-                    if result.size_screen == "flagged":
-                        ax.text(j + offset, result.wilson_upper + .0015, "*", color=color,
-                                ha="center", va="bottom", fontsize=10)
             oracle = null[null.n.eq(n) & null.learner.eq("oracle")].iloc[0]
             y = oracle.rejection_rate
             ax.errorbar(4, y, yerr=[[y - oracle.wilson_lower], [oracle.wilson_upper - y]],
@@ -184,8 +177,6 @@ def null_size(null, output):
                Line2D([], [], color=GRAY, marker="s", markersize=4, linestyle="--", label="Oracle")]
     fig.legend(handles=handles, loc="lower center", ncol=3, frameon=False,
                bbox_to_anchor=(.53, .042))
-    fig.text(.53, .008, "* Null size flagged by the 34-cell Holm screen.",
-             ha="center", fontsize=7, color=".3")
     fig.subplots_adjust(left=.115, right=.99, bottom=.21, top=.94, wspace=.16, hspace=.69)
     save(fig, output, STEMS[1])
 
@@ -195,20 +186,18 @@ def build(run, output):
     differences, null = load_results(run)
     output.mkdir(parents=True, exist_ok=True)
     style()
-    power_difference(differences, null, output)
+    power_difference(differences, output)
     null_size(null, output)
     names = ["config.json", "validation.json", "summary.csv", "paired_differences.csv", "null_size.csv"]
     provenance = {
         "sample_sizes": list(SIZES), "folds": 2,
         "run": Path(os.path.relpath(run, ROOT)).as_posix(),
         "null_family_cells": 34,
-        "flagged_null_cells": int(null.size_screen.eq("flagged").sum()),
         "source_sha256": {name: sha256(run / name) for name in names},
         "builder_sha256": sha256(__file__),
         "output_sha256": {f"{stem}.pdf": sha256(output / f"{stem}.pdf") for stem in STEMS},
         "interval": "Pointwise paired normal interval: mean(d) +/- Phi^-1(.975) * sd(d, ddof=1)/sqrt(R)",
-        "validation": "All paired differences and intervals, Wilson limits, and the original 34-cell Holm screen verified.",
-        "note": "All four learners and all amplitudes retained. Flagged alternatives do not constitute equal-size power comparisons.",
+        "validation": "Paired differences, Monte Carlo intervals and archived null counts verified.",
     }
     (output / "crossfit_manuscript_validation.json").write_text(json.dumps(provenance, indent=2) + "\n")
     return provenance

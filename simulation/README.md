@@ -8,22 +8,29 @@ python summarize.py --inputs runs/smoke --output runs/smoke/summary
 python -m unittest discover -s tests
 ```
 
-`configs/main.json` runs NORD, cross-fitted NORD, residual, Yan, and oracle
-tests. `configs/single_split.json` runs the orthogonal test on a held-out half
-of each observed group. Both retain the original five-scenario grids with
+`configs/main.json` retains the original regression grid; `configs/single_split.json`
+runs the orthogonal test on a held-out half of each observed group. Both use
 300 replications, 200 multiplier draws, total sample size 400, and dimensions
-20 and 50. `configs/smoke.json` covers every method and learner on a smaller
-grid; it checks execution, not size or power.
+20 and 50. To run the four final-manuscript designs, select
+`--scenarios additive,product,composition,neural_composition`. The small smoke
+configuration checks execution, not size or power.
 
-The manuscript displays four scenarios: `additive`, `product`, `composition`,
-and `neural_composition` (the sparse hierarchical alternative). The retained
-`friedman` scenario and additional methods belong to the original null-size
-screening families. Removing them changes those families. The manuscript's
-NORD and GCM curves use a separate matched rerun with shared nuisance fits;
-see [the GCM experiment instructions](../experiments/gcm_comparison_readme.md).
-The archived single-split, Yan, and oracle curves remain the comparators for
-that rerun. The supplementary interpolation and small-sample cross-fitting
-studies have their own runners under `../experiments/`.
+The manuscript's NORD and GCM curves use a matched rerun with shared nuisance
+fits; see [the GCM instructions](../experiments/gcm_comparison_readme.md).
+The archived single-split, Yan and oracle curves provide the other comparisons.
+The supplementary interpolation and small-sample cross-fitting studies have
+separate runners under `../experiments/`.
+
+The additional CATE experiment uses the existing hierarchical design with
+treatment-arm noise standard deviations 1 and 1.5. It compares NORD,
+single-split, Yan, and oracle with all four outcome learners; see
+[the CATE instructions](../experiments/cate_readme.md).
+
+The `late_iv` design adds a valid binary instrument, endogenous treatment,
+and a constant 0.6 first stage. All tests use the instrument as the group
+variable to test the zero conditional-LATE null. The hierarchical signal,
+learners, and calibration budgets match CATE; see [the LATE
+instructions](../experiments/late_readme.md) for the construction.
 
 Outcome learners are cubic-spline GAM, random forest, Lasso, and a neural
 network. Propensity is estimated by spline logistic regression using the first
@@ -59,36 +66,21 @@ grids. Select subsets with `--learners`, `--scenarios`, `--dimensions`,
 CPU learners support `--workers`; runs containing the neural network require
 `--workers 1`. Set `--device cpu` for CPU execution.
 
-The summary combines nonoverlapping runs, reports Monte Carlo uncertainty,
-failures, group counts, and nuisance diagnostics, and writes PNG/PDF power
-curves. Holm adjustment keeps the 170 main null cells and 40 single-split null
-cells in separate families. A production size gate requires the entire
-corresponding family and 300 valid replications per cell at level 0.05.
-Incomplete families remain `not_evaluated`. Primary tables and figures omit
-curves that fail a complete size gate; diagnostic figures retain them. Learners
-are summarized separately.
+The summary combines nonoverlapping runs and reports rejection rates, Monte
+Carlo uncertainty, failures, group counts and nuisance diagnostics. Each learner
+has its own panel. `rejection_summary.csv` and `primary_rejection_summary.csv`
+contain the same complete results; the latter filename is retained for existing
+workflows. Historical size-check fields remain in the tables for provenance.
 
-To reproduce the complete screening families, run the null cells before the
-alternatives, preserving separate output directories:
+Run the complete selected grids from this directory:
 
 ```sh
-python run_simulation.py --config configs/main.json --output runs/main-null --deltas 0 --device cpu
-python run_simulation.py --config configs/single_split.json --output runs/split-null --deltas 0 --device cpu
-python summarize.py --inputs runs/main-null --output runs/main-null/summary
-python summarize.py --inputs runs/split-null --output runs/split-null/summary
+python run_simulation.py --config configs/main.json --output runs/main --scenarios additive,product,composition,neural_composition --device cpu
+python run_simulation.py --config configs/single_split.json --output runs/single-split --scenarios additive,product,composition,neural_composition --device cpu
+python summarize.py --inputs runs/main --output runs/main/summary
+python summarize.py --inputs runs/single-split --output runs/single-split/summary
 ```
 
-Use the corresponding configuration with
-`--deltas 0.1,0.2,0.3,0.5,0.8,1.2,1.6,2.5,4,6,20` for the alternatives, with
-`runs/main-alternatives` and `runs/split-alternatives` as output directories.
-Then combine each null run with its alternatives:
-
-```sh
-python summarize.py --inputs runs/main-null runs/main-alternatives --output runs/main-summary
-python summarize.py --inputs runs/split-null runs/split-alternatives --output runs/split-summary
-```
-
-These commands produce new summaries and retain all original screening cells.
-To render the manuscript's main power curves from the supplied summaries,
-run `python plot_results.py` from the repository root; no model fitting is
-needed for that step.
+Fresh runs write their own tables and diagnostic figures. To render the final
+manuscript figures from the supplied compact archives, run
+`python reproduce_figures.py` from the repository root.

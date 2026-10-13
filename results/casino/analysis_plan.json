@@ -1,0 +1,62 @@
+{
+  "version": "casino-baseline-plus-text-v1",
+  "primary_sample_sha256": "b5ab9409d51a33c461ed05a4ad4de53c7c888456cfa16bbe4176ab87eb0729a0",
+  "corpus_member_sha256": {
+    "corpus.json": "325eb3b3658281e4c4c35b99b481ce77bf11ae964c9955408e5216d23bda55ca",
+    "index.json": "3fe7183616e59ddc5a48c348e29686c2e176da73f3e02c0d3820ffdaec262abb",
+    "speakers.json": "cd390b72f78ed57ef274d035d6e2f9da23dcd07c6b380c6656abb3c173dd20cf",
+    "conversations.json": "e02f28cba58010d410daec1b000c3ae9b6247d668358f3da70251a3e96d19055",
+    "utterances.jsonl": "1394d74a2dffb7711d833d8de41a3580b61cc53b5ad0fcb166a4c76b6f39e93a"
+  },
+  "outcomes": {
+    "mean_satisfaction": "(S1+S2)/2",
+    "both_extremely_satisfied": "1{S1=5,S2=5}"
+  },
+  "covariates": {
+    "baseline": "36 fixed baseline coordinates",
+    "baseline_text": "concatenate baseline with 128 unit-norm signed text-hash coordinates"
+  },
+  "primary_bandwidth": 1,
+  "bandwidth_sensitivity": [
+    0.5,
+    1,
+    2
+  ],
+  "bootstrap_draws": 5000,
+  "main_learners": [
+    "ridge",
+    "lasso",
+    "random_forest"
+  ],
+  "sensitivity_learners": [
+    "ridge"
+  ],
+  "regimes": [
+    "no_split",
+    "crossfit_5fold"
+  ],
+  "outer_folds": "5 shuffled folds independent of labels; shared across outcomes and covariate sets",
+  "selection_salts": {
+    "main": "CaSiNo-preference-satisfaction-v1-disjoint",
+    "alternative_01": "CaSiNo-preference-satisfaction-v1-sensitivity-00",
+    "alternative_02": "CaSiNo-preference-satisfaction-v1-sensitivity-01",
+    "alternative_03": "CaSiNo-preference-satisfaction-v1-sensitivity-02",
+    "alternative_04": "CaSiNo-preference-satisfaction-v1-sensitivity-03",
+    "alternative_05": "CaSiNo-preference-satisfaction-v1-sensitivity-04",
+    "alternative_06": "CaSiNo-preference-satisfaction-v1-sensitivity-05",
+    "alternative_07": "CaSiNo-preference-satisfaction-v1-sensitivity-06",
+    "alternative_08": "CaSiNo-preference-satisfaction-v1-sensitivity-07",
+    "alternative_09": "CaSiNo-preference-satisfaction-v1-sensitivity-08",
+    "alternative_10": "CaSiNo-preference-satisfaction-v1-sensitivity-09"
+  },
+  "include_age_and_order_sensitivities": true,
+  "random_seeds": "Use the original baseline main-analysis seeds for all samples and covariate sets",
+  "source_sha256": {
+    "joint_analysis.py": "11f00c06656bbd1da0b960d497b1c891ef15944b41deae0b5e613430aa771a4c",
+    "core.py": "d4cc28ba4c06181d01e4c920823e5aa44910240769e9caebf6b2d82382b9028f",
+    "analyze.py": "043b1f2e2744077edce269cca25c603d47fbd7e8f59c972a41db6ec9acc67604",
+    "baseline_analysis.py": "f684a0e9cd0a137e971a118a6484d047880aadf98157515b0c030ddc89de0d9b"
+  },
+  "archived_baseline_prediction_sha256": "be98b12ea9b7dbd90474a60edbdfcf26ce2b5f6d0af4af7ac6d706b60dcbd275",
+  "reporting": "All specifications retained; exploratory regression comparisons; no AIPW or causal mediation claims"
+}

@@ -1,0 +1,14 @@
+selection,n,n0,n1,unique_participants
+main,232,73,159,464
+alternative_01,229,73,156,458
+alternative_02,229,87,142,458
+alternative_03,230,77,153,460
+alternative_04,232,94,138,464
+alternative_05,226,82,144,452
+alternative_06,237,83,154,474
+alternative_07,234,83,151,468
+alternative_08,226,85,141,452
+alternative_09,227,78,149,454
+alternative_10,227,93,134,454
+select_before_restrict,180,56,124,360
+omit_age,232,73,159,464

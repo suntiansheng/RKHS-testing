@@ -501,6 +501,17 @@ def make_language_figure(words: pd.DataFrame) -> plt.Figure:
     return fig
 
 
+def make_manuscript_word_figure(words: pd.DataFrame) -> plt.Figure:
+    """Compact opening-word comparison used in the supplement."""
+    fig, ax = plt.subplots(figsize=(6.25, 3.0))
+    draw_word_forest(ax, words)
+    ax.set_title("", loc="left")
+    ax.set_xlabel("Opening-word log odds (maximal potential minus aligned priorities)")
+    ax.tick_params(axis="y", labelsize=9)
+    fig.subplots_adjust(left=0.15, right=0.975, bottom=0.18, top=0.94)
+    return fig
+
+
 def save_figure(fig: plt.Figure, output_dir: Path, stem: str) -> tuple[Path, Path]:
     output_dir.mkdir(parents=True, exist_ok=True)
     pdf_path = output_dir / f"{stem}.pdf"

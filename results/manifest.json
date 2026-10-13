@@ -1,6 +1,20 @@
 {
-  "description": "Compact simulation archives distributed with the v10 reproducibility package.",
+  "description": "Compact result tables and provenance for all final JRSSB manuscript figures.",
   "sha256": {
+    "README.md": "e0937d2392b1271305bb09a6c529148c3fbe4293156a592edbeed5dba6751640",
+    "casino/analysis_plan.json": "8b6588d49aa65f665afd0b83423a1b411810666071028cbd80230e72f26e1244",
+    "casino/analysis_summary.json": "0b5c3bf47657dbbdcc0390280bb456f839be853fd792613e6006bbdc562ee322",
+    "casino/regression_tests.csv": "6bc036ca73da5e9225e87dc70b914775d272871d1e525cab05e52ab549a6a800",
+    "casino/sample_summary.csv": "ea46b9c01711503723cf6a58f1ad7ab98fe81332ee1b525d8cb4a85de3658037",
+    "casino/selection_overlap.csv": "607c52c8d078a831691de486cf767380526ec39f341e63eed169485a7ed78ed4",
+    "casino/word_log_odds.csv": "a5eab77a163553d31783fd3075dbdc6dd03cf3419f524c2b0fa47fbed3e74917",
+    "cate_hierarchical/cate_report.md": "676e3f823df88f65fc010ba78510f47bb1b9540eae7cd1b236e1e503d07fb9ca",
+    "cate_hierarchical/failed_results.csv": "df03ac16aadf4aecfa5dff8ff16f1396db386730b136b9974e96f08e10bb1fa6",
+    "cate_hierarchical/null_size.csv": "31c98afa2601a42cbd4012b6ec1cd7bca03bec7498750381abc0a6059cd37fb4",
+    "cate_hierarchical/paired_differences.csv": "e34d562d4b1acf13d44832d5648235170da334983659b39f2eb37f6fc01b1474",
+    "cate_hierarchical/rejection_summary.csv": "e197b11f4386cadff223ecf2edd09f2ea5b6018f4189e3b7b357cd11e3777113",
+    "cate_hierarchical/report_manifest.json": "8a387d1a6061ed9d3e7dc36ec8fb569dd4ecb9ebdb5a9819aa4fa904be7ca14c",
+    "cate_hierarchical/validation.json": "94cb3683f0e49bda6b318be502dd311bf79cb247e676c25eee959afdde7d0d19",
     "crossfit_comparison/n120_n160_k2/config.json": "ff38465c6ddf80387162d5d40cf6afddb985550c4260188fafb280873f86bdb7",
     "crossfit_comparison/n120_n160_k2/null_size.csv": "eec8cea80191cec7ca0037e6161eaeb9c67be5a1a5748f8f5ffcefe36aa0f211",
     "crossfit_comparison/n120_n160_k2/paired_differences.csv": "2f15f6a7f941c974aee98bb2107c12a2b79e73071e3acf15560afd54e02674e4",
@@ -17,6 +31,30 @@
     "gcm_signal_diagnostic_metadata.json": "ab877dbb4ce0765f7d67749b979c3eb88a34521ccc3914fd0153f30b4e070ee8",
     "gcm_summary.csv": "4ef50725292cbbab5ae84f4e53df0254f1819209679ebc0b621f4ff8b41d10fc",
     "interpolation.csv": "cc7caf8181f4cd1c20d3d7e21044850e0a04a24b43e9cc159100ee7d07eb6b11",
+    "late_hierarchical/failed_results.csv": "df03ac16aadf4aecfa5dff8ff16f1396db386730b136b9974e96f08e10bb1fa6",
+    "late_hierarchical/late_report.md": "cb66f8e6c75bb5fcc6bce72a173641233a8e7718aac8e706c0b8074e15e7423e",
+    "late_hierarchical/null_size.csv": "2be0a6660a80a18bceea5263469209d0a617ca07f2785501151a3d2444e9c60b",
+    "late_hierarchical/paired_differences.csv": "47f76adcad3267d5a2c8e7753c5747c6e4ea43b34c2f393f506e4f43eb719a2b",
+    "late_hierarchical/rejection_summary.csv": "47214d0ef6b4b7f77c8a5cde7b74ca1d364ca32d5db2696e49bdec2621345055",
+    "late_hierarchical/report_manifest.json": "a7ce078a0b7f362944c9d8a7327e3dbcac88d107d86caa6d868815e435a5f9ca",
+    "late_hierarchical/validation.json": "132e95d65cd73ca8ac1b12564cb06b51994c744b6b70a466719d337a27d3300f",
     "single_split_summary.csv": "eecd26e3ffe3b5a94a1b540fa941531fbe455d1ef49c2557d2bff713dfa46254"
-  }
+  },
+  "manuscript_figure_sha256": {
+    "casino_baseline_cate.pdf": "2cc7135b95cebf28c89cd69ab5e6ec210ef8f0ff78f0c4a35204913b2cfbbd11",
+    "casino_baseline_max_satisfaction.pdf": "4d0248bf7cc6d0fb25e96c3c67499776f6aa63e0076c463a9123479ccfd37ee3",
+    "casino_results_max_satisfaction.pdf": "a9a8033baca571846d0dc16e4b5e58d6acad1c8bf6b27946b0256f037b68a9c7",
+    "casino_results_v9.pdf": "6cbb9d02148cd7dd905b6708c719a3d292b2d9bd113fd1a55a630d2271ddc870",
+    "casino_word_contrasts_v5.pdf": "2e0814211d72b3159d71706363db22a0a7717098aef174ad8f143658e35a42d1",
+    "simulation_additive_compact_v9.pdf": "5a7f98400c5a76730b54ad8d9f8ec0d9c04d53558e3819111f9193abf9e76d27",
+    "simulation_cate_hierarchical.pdf": "9707e9b5bd54e6f208e498866cc6b6ccb035b867de813a1cce07304c7bb691d9",
+    "simulation_composition_compact_v9.pdf": "d5439e4acc0590da40593ce43f0c0402886c8d33f847b33bf2888f1c52ff8bf4",
+    "simulation_crossfit_additive_null_size.pdf": "4381967beff15d06fee82fdd2bbdfd43a1f8af4277ecfe62d2a8292255bdb9af",
+    "simulation_crossfit_additive_power_difference.pdf": "f37b55f2fc0b65723fbdf30dc287f20a510a4391ab5b8e63072a4b06903bcae3",
+    "simulation_crossfit_interpolation_v9.pdf": "10bc85acf34cd7d7ec16f44660271d9fcd5b0449cea16529e4afe2fd6fb40813",
+    "simulation_hierarchical_v9.pdf": "441fee2329138614d362498794bc5b92e7fba3aef57865c8e6947eb77b434459",
+    "simulation_late_hierarchical.pdf": "77ab9a1e766968a8bd66b29240cc7e805a948f60a0faf72268936a36d2e8bfe1",
+    "simulation_product_compact_v9.pdf": "28fac8c3385a3fd11b110b03929b4a9469336ba80571791c9bd5f0e29098c508"
+  },
+  "figure_comparison": "PDF file hashes identify the submitted assets. Re-rendered pixels match under requirements-reproduce.txt; PDF metadata may differ."
 }

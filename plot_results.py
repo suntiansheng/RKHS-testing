@@ -186,9 +186,8 @@ def main(argv=None):
         }
     )
     data = comparison_data()
-    passed = data[data.size_gate_status == "pass"]
     for scenario in SCENARIOS:
-        power_figure(passed, scenario, args.output)
+        power_figure(data, scenario, args.output)
     interpolation_figure(pd.read_csv(RESULTS / "interpolation.csv"), args.output)
     data[data.delta == 0].groupby("method").agg(
         cells=("p", "size"),
@@ -196,11 +195,11 @@ def main(argv=None):
         maximum=("rejection_rate", "max"),
         failures=("size_gate_status", lambda values: (values != "pass").sum()),
     ).to_csv(args.output / "size_summary.csv")
-    passed[passed.delta == 20].groupby(["scenario", "p", "method"]).rejection_rate.agg(
+    data[data.delta == 20].groupby(["scenario", "p", "method"]).rejection_rate.agg(
         ["min", "max", "count"]
     ).to_csv(args.output / "endpoint_summary.csv")
     matched = (
-        passed[passed.method.isin([m[0] for m in METHODS[:2]])]
+        data[data.method.isin([m[0] for m in METHODS[:2]])]
         .pivot(
             index=["scenario", "p", "learner", "delta"],
             columns="method",

@@ -189,7 +189,7 @@ def main():
     config["learner_options"]["dnn"]["device"] = "cpu"
     config["gcm_calibration"] = "two-sided standard normal; equation (3), Shah and Peters (2020)"
     config["null_screen"] = "two-sided exact binomial tests with Holm adjustment across 32 GCM cells"
-    config["reporting"] = "All results retained; primary curves use the same complete-family size screen as existing figures"
+    config["reporting"] = "Empirical rejection rates for all reported designs, procedures and learners"
     config["source_sha256"] = {str(path.relative_to(ROOT)):file_hash(path) for path in
         [Path(__file__), ROOT/"simulation/gcm.py", ROOT/"simulation/simcore.py",
          ROOT/"simulation/configs/main.json", ROOT/"results/frozen_summary.csv"]}

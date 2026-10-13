@@ -1,0 +1,20 @@
+{
+  "calibration_exactly_matches_existing_hierarchical_p20": true,
+  "seed_base": 8012026,
+  "source_hashes_frozen": {
+    "experiments/cate_simulation.py": "d511b6dabd9ef3f0f86d461cea77249f020cd656a7d172963877b1cf6e08a2fa",
+    "simulation/simcore.py": "c4c171d2ee93e9a4eb6882cef572e1e51e29ea2a450ce81b26a64d15f14812d6",
+    "simulation/run_simulation.py": "1e121e8fe2e78167168cc2896b557075fe4835d02dd818650ba3274564ec6fbf",
+    "simulation/configs/cate.json": "b1c1e033eba4d5fa77201cc14bccd16feee72d75d36af3af4fd1a7e163e47971"
+  },
+  "complete": true,
+  "distinct_tasks": 18000,
+  "valid_test_results": 46800,
+  "distinct_cells": 156,
+  "replications_per_cell": 300,
+  "failed_results": 0,
+  "missing_results": 0,
+  "duplicate_results": 0,
+  "elapsed_simulation_seconds": 1227.8186653326266,
+  "description": "Completed CATE simulation; source hashes refer to the original run."
+}

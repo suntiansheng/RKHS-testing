@@ -1,12 +1,16 @@
-"""Reproduce the seven simulation figures in v10 from archived summaries."""
+"""Reproduce every final manuscript figure from the supplied result tables."""
 
 import argparse
 import hashlib
 import json
 from pathlib import Path
 
+import pandas as pd
+
 import plot_results
-from experiments import plot_crossfit_manuscript
+from experiments import cate_report, late_report, plot_crossfit_manuscript
+from application import plot as application_plot
+from application import plot_joint
 
 
 ROOT = Path(__file__).resolve().parent
@@ -18,6 +22,10 @@ MANUSCRIPT_NAMES = {
     "simulation_composition_compact": "simulation_composition_compact_v9",
     "simulation_crossfit_interpolation": "simulation_crossfit_interpolation_v9",
 }
+CAUSAL_NAMES = ("simulation_cate_hierarchical", "simulation_late_hierarchical")
+WORD_NAME = "casino_word_contrasts_v5"
+FIGURE_NAMES = (tuple(MANUSCRIPT_NAMES.values()) + tuple(plot_crossfit_manuscript.STEMS)
+                + CAUSAL_NAMES + tuple(plot_joint.FIGURES.values()) + (WORD_NAME,))
 
 
 def sha256(path):
@@ -33,10 +41,10 @@ def verify_archives():
     return manifest["sha256"]
 
 
-def main():
+def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--output", type=Path, default=RESULTS / "figures/v10")
-    args = parser.parse_args()
+    parser.add_argument("--output", type=Path, default=RESULTS / "figures/jrssb")
+    args = parser.parse_args(argv)
     sources = verify_archives()
     output = args.output.resolve()
     output.mkdir(parents=True, exist_ok=True)
@@ -44,20 +52,29 @@ def main():
     plot_results.main(["--output", str(output)])
     for old, new in MANUSCRIPT_NAMES.items():
         (output / f"{old}.pdf").replace(output / f"{new}.pdf")
-    crossfit = plot_crossfit_manuscript.build(
+    plot_crossfit_manuscript.build(
         RESULTS / "crossfit_comparison/n120_n160_k2", output
     )
-    names = list(MANUSCRIPT_NAMES.values()) + list(plot_crossfit_manuscript.STEMS)
+    for name, report_module in (("cate", cate_report), ("late", late_report)):
+        directory = RESULTS / f"{name}_hierarchical"
+        summary = pd.read_csv(directory / "rejection_summary.csv")
+        if (len(summary) != 156 or not summary.n_valid.eq(300).all()
+                or not summary.n_failed.eq(0).all() or not summary.n_missing.eq(0).all()):
+            raise ValueError(f"Incomplete {name.upper()} result archive")
+        null = pd.read_csv(directory / "null_size.csv")
+        report_module.plot_power(summary, null, output)
+    plot_joint.create_figures(RESULTS / "casino", output)
+    application_plot.configure_style()
+    words = pd.read_csv(RESULTS / "casino/word_log_odds.csv")
+    application_plot.save_figure(application_plot.make_manuscript_word_figure(words), output, WORD_NAME)
     report = {
-        "manuscript": "v10.tex",
+        "manuscript": "JRSSB submission: main.tex and supplement.tex",
         "input_sha256": sources,
-        "output_sha256": {f"{name}.pdf": sha256(output / f"{name}.pdf") for name in names},
-        "crossfit_null_family_cells": crossfit["null_family_cells"],
+        "output_sha256": {f"{name}.pdf": sha256(output / f"{name}.pdf") for name in FIGURE_NAMES},
         "interpolation_bootstrap_draws": 199,
-        "note": "The interpolation archive used 199 draws; v10.tex states 200. See results/README.md.",
     }
     (output / "reproduction.json").write_text(json.dumps(report, indent=2) + "\n")
-    print(f"Saved all seven simulation figures to {output}")
+    print(f"Saved all {len(FIGURE_NAMES)} manuscript figure PDFs to {output}")
 
 
 if __name__ == "__main__":

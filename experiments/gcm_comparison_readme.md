@@ -15,15 +15,12 @@ NORD uses 200 centered Gaussian multiplier draws and a plus-one p-value.
 ## Included results
 
 The `results/gcm_*.csv` files contain the 384 complete simulation cells,
-the paired NORD estimates, null calibration screens, and paired rejection-rate
+the paired NORD estimates, null rejection rates, and paired rejection-rate
 differences. NORD curves in the main figures use these matched fits. The
 single-split, Yan, and oracle curves use their original archived summaries.
 
-The 32 GCM null rates range from 0.0267 to 0.0833. None is flagged by the
-32-cell Holm screen. Replacing the displayed NORD counts in the original
-170-cell screen changes none of its decisions. All results remain in the
-CSV files; the main figures apply the recorded null-screen eligibility rule.
-Paired confidence intervals are pointwise Monte Carlo intervals.
+The 32 GCM null rates range from 0.0267 to 0.0833. Paired confidence intervals
+are pointwise Monte Carlo intervals.
 
 ## Recompute the comparison
 

@@ -1,6 +1,6 @@
 # NORD and CF-NORD with regularized learners
 
-The supplementary simulation in `v10.tex` compares full-sample NORD with
+The supplementary simulation in the supplement compares full-sample NORD with
 CF-NORD using two folds, sample sizes 120 and 160, and 20 covariates. Outcome
 learners are additive cubic splines, random forests, Lasso, and a neural
 network. Their fitting and tuning specifications, and the spline-logistic
@@ -32,16 +32,9 @@ python experiments/plot_crossfit_manuscript.py
 The command reads the five compact tables and metadata files in
 `results/crossfit_comparison/n120_n160_k2/` and writes the two manuscript figures
 to `results/figures/`. It verifies paired differences and their Monte Carlo
-intervals, Wilson intervals, and the 34-cell Holm null screen. This verifies
-the reported summaries; individual replication records are produced by the
-full simulation below.
-
-The 34 null cells comprise 16 estimated-propensity procedures, 16
-known-propensity procedures, and two oracles. Two-sided exact binomial tests
-receive Holm adjustment within this family. All curves are retained. The
-screen flags CF-NORD with splines at both sample sizes and with the neural
-network at n=120. Alternative rejection rates for these configurations are
-not comparisons at equal size. Error bars are pointwise Monte Carlo intervals.
+intervals, Wilson intervals and the archived null counts. The 34 null
+configurations comprise 16 estimated-propensity procedures, 16 known-propensity
+procedures and two oracles. Error bars show pointwise Monte Carlo intervals.
 
 ## Run the simulation
 
@@ -72,25 +65,6 @@ To summarize a partially completed run:
 python experiments/crossfit_comparison.py \
   --output runs/crossfit_comparison/n120_n160_k2 --summarize-only --write-raw
 ```
-
-## Optional n=200 comparison
-
-The n=200 sensitivity experiment is not required for the two manuscript
-figures. To reproduce it and generate combined figures:
-
-```sh
-OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 \
-python experiments/crossfit_comparison.py \
-  --output runs/crossfit_comparison/n200_k2 \
-  --sample-sizes 200 --workers 8 --write-raw
-python experiments/publish_crossfit_sample_sizes.py
-```
-
-The publisher requires the complete raw files, checkpoints, and shards from
-both runs. It verifies 6,000 checkpoints and 510,000 result rows, preserves the
-34-cell and 17-cell screens, and adds a separate 51-cell screen for combined
-figures. Outputs go to `results/figures/crossfit_sample_sizes/`. It does not
-require any manuscript files or internal planning documents.
 
 ## Tests
 

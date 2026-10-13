@@ -1,6 +1,7 @@
 import sys
 import tempfile
 import unittest
+from unittest.mock import patch
 from pathlib import Path
 
 import pandas as pd
@@ -315,7 +316,7 @@ class SizeGateTests(unittest.TestCase):
         annotated = attach_size_gate(summary, size_audit(summary))
         self.assertEqual(annotated.loc[0, "size_gate_status"], "not_evaluated")
 
-    def test_primary_and_diagnostic_plot_sets_are_created(self):
+    def test_power_plot_preserves_size_inflated_method(self):
         rows = []
         for method, status in (
             ("orthogonal_nosplit", "pass"),
@@ -337,12 +338,22 @@ class SizeGateTests(unittest.TestCase):
                         "size_gate_status": status,
                     }
                 )
-        with tempfile.TemporaryDirectory() as temporary:
+        import matplotlib.pyplot as plt
+        captured = []
+        original_close = plt.close
+
+        def capture(figure=None):
+            if hasattr(figure, "axes"):
+                captured.extend(line.get_label() for axis in figure.axes for line in axis.lines)
+            original_close(figure)
+
+        with tempfile.TemporaryDirectory() as temporary, patch("summarize.plt.close", side_effect=capture):
             files = make_plots(pd.DataFrame(rows), Path(temporary))
-            self.assertEqual(len(files), 4)
-            self.assertTrue(any("primary_size_valid" in path for path in files))
-            self.assertTrue(any("diagnostic_all_methods" in path for path in files))
+            self.assertEqual(len(files), 2)
             self.assertTrue(all((Path(temporary) / path).exists() for path in files))
+        self.assertIn("NORD", captured)
+        self.assertIn("Residual", captured)
+        self.assertFalse(any("fails size" in label for label in captured))
 
     def test_extended_grid_creates_full_and_zoomed_plot_sets(self):
         rows = []
@@ -369,7 +380,7 @@ class SizeGateTests(unittest.TestCase):
             )
         with tempfile.TemporaryDirectory() as temporary:
             files = make_plots(pd.DataFrame(rows), Path(temporary))
-            self.assertEqual(len(files), 12)
+            self.assertEqual(len(files), 6)
             self.assertTrue(any("zoom_delta_le_1_6" in path for path in files))
             self.assertTrue(any("zoom_delta_le_6" in path for path in files))
             self.assertTrue(all((Path(temporary) / path).exists() for path in files))

@@ -29,6 +29,8 @@ from simcore import (
     package_versions,
     run_replication,
     stable_seed,
+    validate_late_options,
+    validate_treatment_noise_scales,
 )
 
 
@@ -104,6 +106,16 @@ def validate_config(config: Mapping[str, Any]) -> None:
         )
     if "oracle" in config["learners"] and "oracle_score" not in config["methods"]:
         raise ValueError("The oracle learner requires oracle_score in methods.")
+    if "treatment_noise_scales" in config:
+        validate_treatment_noise_scales(config["treatment_noise_scales"])
+    if "late_iv" in config["designs"]:
+        if "late_options" not in config:
+            raise ValueError("late_iv requires an explicit late_options configuration.")
+        validate_late_options(config["late_options"])
+        if (float(config["sigma"]) != 1.0
+                or validate_treatment_noise_scales(config.get("treatment_noise_scales", []))
+                != (1.0, 1.5)):
+            raise ValueError("late_iv requires sigma=1 and treatment_noise_scales=[1,1.5].")
 
 
 def task_key(task: Mapping[str, Any]) -> str:
@@ -194,6 +206,14 @@ def build_tasks(
                                 ),
                                 "bootstrap_seed": bootstrap_seed,
                             }
+                            if "treatment_noise_scales" in config:
+                                task["treatment_noise_scales"] = list(
+                                    validate_treatment_noise_scales(
+                                        config["treatment_noise_scales"]
+                                    )
+                                )
+                            if design == "late_iv":
+                                task["late_options"] = validate_late_options(config["late_options"])
                             task["task_key"] = task_key(task)
                             tasks.append(task)
     return tasks

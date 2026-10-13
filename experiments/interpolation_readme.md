@@ -9,9 +9,7 @@ propensity to isolate outcome fitting. The Gaussian kernel has bandwidth one.
 
 The included `results/interpolation.csv` contains 500 replications at each
 amplitude in {0, 0.25, 0.5, 1}. The saved experiment and the runner's default
-use **199** centered Gaussian multiplier draws. The current `v10.tex` text
-states **200** draws. These are different finite-bootstrap experiments; the
-reported archive is preserved without relabeling its multiplier count.
+use **199** centered Gaussian multiplier draws, matching the supplement.
 
 To reproduce the archived experiment:
 
@@ -21,16 +19,7 @@ python experiments/interpolation.py \
   --replications 500 --bootstrap-draws 199 --output runs/interpolation
 ```
 
-To run the 200-draw specification stated in the manuscript, use a separate
-output directory:
-
-```sh
-OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 \
-python experiments/interpolation.py \
-  --replications 500 --bootstrap-draws 200 --output runs/interpolation_b200
-```
-
-Each command writes `raw.csv`, `summary.csv`, and `config.json`. Plotting the
+The command writes `raw.csv`, `summary.csv`, and `config.json`. Plotting the
 included summary reproduces the archived figure; a new simulation does not
 automatically replace it. Within each replication, data, folds, and multipliers
 are shared across methods and amplitudes. The plus-one upper-tail p-value is

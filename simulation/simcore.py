@@ -30,7 +30,13 @@ SUPPORTED_SCENARIOS = (
     "friedman",
     "neural_composition",
 )
-SUPPORTED_DESIGNS = ("pooled_random_shift",)
+SUPPORTED_DESIGNS = ("pooled_random_shift", "late_iv")
+LATE_OPTIONS = {
+    "always_taker_probability": 0.2,
+    "complier_probability": 0.6,
+    "latent_outcome_coefficient": 2.0,
+    "noncomplier_treatment_effect": 1.0,
+}
 SUPPORTED_LEARNERS = ("gam", "rf", "lasso", "dnn", "oracle")
 SUPPORTED_METHODS = (
     "orthogonal_nosplit",
@@ -342,6 +348,39 @@ def evaluate_regression_structure(
     return base, signal
 
 
+def validate_treatment_noise_scales(value: Sequence[float]) -> tuple[float, float]:
+    """Return the positive noise multipliers for control and treatment."""
+
+    try:
+        if isinstance(value, (str, bytes)) or len(value) != 2:
+            raise ValueError
+        scales = tuple(float(scale) for scale in value)
+        if any(not math.isfinite(scale) or scale <= 0.0 for scale in scales):
+            raise ValueError
+    except (TypeError, ValueError, OverflowError) as error:
+        raise ValueError(
+            "treatment_noise_scales must contain two finite positive numbers."
+        ) from error
+    return scales
+
+
+def validate_late_options(value: Optional[Mapping[str, Any]]) -> dict[str, float]:
+    """Validate the fixed compliance and outcome parameters of the IV design."""
+
+    if value is None:
+        return dict(LATE_OPTIONS)
+    if not isinstance(value, Mapping) or set(value) != set(LATE_OPTIONS):
+        raise ValueError("late_options must specify all four fixed IV design parameters.")
+    try:
+        options = {key: float(value[key]) for key in LATE_OPTIONS}
+    except (TypeError, ValueError, OverflowError) as error:
+        raise ValueError("late_options must contain finite fixed IV design values.") from error
+    if any(not math.isclose(options[key], expected, rel_tol=0.0, abs_tol=1e-14)
+           for key, expected in LATE_OPTIONS.items()):
+        raise ValueError(f"late_options must match the fixed IV design: {LATE_OPTIONS}")
+    return options
+
+
 def generate_data(
     *,
     n: int,
@@ -353,19 +392,78 @@ def generate_data(
     scenario: str,
     calibration: ScenarioCalibration,
     seed: int,
+    treatment_noise_scales: Optional[Sequence[float]] = None,
+    late_options: Optional[Mapping[str, Any]] = None,
 ) -> SimData:
     if design not in SUPPORTED_DESIGNS:
         raise ValueError(f"Unknown design: {design}")
     if n < 1:
         raise ValueError("The pooled sample size must be positive.")
+    noise_scales = (
+        ((1.0, 1.5) if design == "late_iv" else (1.0, 1.0))
+        if treatment_noise_scales is None
+        else validate_treatment_noise_scales(treatment_noise_scales)
+    )
     rng = np.random.default_rng(seed)
     X = draw_reference_covariates(n, p, rho, design, rng)
     e_true = pooled_random_propensity(X)
     d = rng.binomial(1, e_true, size=n).astype(int)
     base_pool, signal_pool = evaluate_regression_structure(X, scenario, calibration)
-    eps = rng.normal(0.0, sigma, n)
-    y = base_pool + d * delta * signal_pool + eps
-    mu_true = base_pool + e_true * delta * signal_pool
+    iv_diagnostics: dict[str, Any] = {}
+    if design == "late_iv":
+        options = validate_late_options(late_options)
+        if sigma != 1.0 or noise_scales != (1.0, 1.5):
+            raise ValueError("late_iv requires sigma=1 and treatment_noise_scales=[1,1.5].")
+        always_probability = options["always_taker_probability"]
+        complier_probability = options["complier_probability"]
+        latent = rng.uniform(size=n)
+        always_taker = latent <= always_probability
+        complier = (latent > always_probability) & (
+            latent <= always_probability + complier_probability
+        )
+        # Here d is the instrument A: all tests compare the two IV groups.
+        treatment = (always_taker | ((d == 1) & complier)).astype(int)
+        treatment_effect = (
+            complier * delta * signal_pool
+            + (~complier) * options["noncomplier_treatment_effect"]
+        )
+        # One independent draw has the observed-data law of epsilon_D when
+        # epsilon_0 and epsilon_1 are independent standard normals.
+        eps = rng.normal(size=n) * np.asarray(noise_scales)[treatment]
+        y = (base_pool + options["latent_outcome_coefficient"] * (latent - 0.5)
+             + treatment * treatment_effect + eps)
+        regression_baseline = (
+            base_pool + always_probability * options["noncomplier_treatment_effect"]
+        )
+        regression_shift = complier_probability * delta * signal_pool
+        mu_true = regression_baseline + e_true * regression_shift
+        treated_rates = [float(np.mean(treatment[d == arm]))
+                         if np.any(d == arm) else math.nan for arm in (0, 1)]
+        iv_diagnostics = {
+            "group_variable": "instrument",
+            "n_always_takers": int(np.sum(always_taker)),
+            "n_compliers": int(np.sum(complier)),
+            "n_never_takers": int(np.sum(~(always_taker | complier))),
+            "n_treated": int(np.sum(treatment)),
+            "n_treated_instrument0": int(np.sum(treatment[d == 0])),
+            "n_treated_instrument1": int(np.sum(treatment[d == 1])),
+            "treatment_rate_instrument0": treated_rates[0],
+            "treatment_rate_instrument1": treated_rates[1],
+            "first_stage_population": complier_probability,
+            "first_stage_empirical": treated_rates[1] - treated_rates[0],
+            "complier_fraction_empirical": float(np.mean(complier)),
+            "late_empirical_l2": float(abs(delta) * np.sqrt(np.mean(signal_pool**2))),
+            "reduced_form_empirical_l2": float(np.sqrt(np.mean(regression_shift**2))),
+            **options,
+        }
+    else:
+        eps = rng.normal(0.0, sigma, n)
+        if noise_scales != (1.0, 1.0):
+            eps *= np.asarray(noise_scales)[d]
+        y = base_pool + d * delta * signal_pool + eps
+        mu_true = base_pool + e_true * delta * signal_pool
+        regression_baseline = base_pool
+        regression_shift = delta * signal_pool
 
     group1 = d == 1
     group0 = ~group1
@@ -373,10 +471,10 @@ def generate_data(
     X0, y0 = X[group0], y[group0]
     base1, signal1 = base_pool[group1], signal_pool[group1]
     base0, signal0 = base_pool[group0], signal_pool[group0]
-    m1_x1 = base1 + delta * signal1
-    m0_x1 = base1
-    m1_x0 = base0 + delta * signal0
-    m0_x0 = base0
+    m1_x1 = regression_baseline[group1] + regression_shift[group1]
+    m0_x1 = regression_baseline[group1]
+    m1_x0 = regression_baseline[group0] + regression_shift[group0]
+    m0_x0 = regression_baseline[group0]
     n1 = int(np.count_nonzero(group1))
     n0 = int(np.count_nonzero(group0))
 
@@ -413,6 +511,14 @@ def generate_data(
             - sample_covariance(X0[:, 0], X0[:, 1])
         ),
     }
+    diagnostics.update(iv_diagnostics)
+    if treatment_noise_scales is not None or design == "late_iv":
+        diagnostics.update(
+            noise_scale_control=noise_scales[0],
+            noise_scale_treated=noise_scales[1],
+            noise_sd_control=float(sigma * noise_scales[0]),
+            noise_sd_treated=float(sigma * noise_scales[1]),
+        )
     return SimData(
         X1=X1,
         y1=y1,
@@ -914,7 +1020,7 @@ def fit_regression(
 
 
 def _propensity_features(X: np.ndarray, design: str) -> np.ndarray:
-    if design == "pooled_random_shift":
+    if design in ("pooled_random_shift", "late_iv"):
         # The propensity depends on the first two covariates.
         return X[:, :2]
     return X
@@ -932,7 +1038,7 @@ def fit_propensity(
 ) -> PredictionFit:
     X_train_features = _propensity_features(X_train, design)
     X_predict_features = _propensity_features(X_predict, design)
-    if design == "pooled_random_shift":
+    if design in ("pooled_random_shift", "late_iv"):
         preprocessing: Any = Pipeline(
             [
                 ("scale", StandardScaler()),
@@ -1125,6 +1231,16 @@ def _base_result_row(
         "e_true_min": dat.diagnostics["e_min"],
         "e_true_max": dat.diagnostics["e_max"],
         "diagnostics_json": "{}",
+        **{
+            key: dat.diagnostics[key]
+            for key in (
+                "noise_scale_control",
+                "noise_scale_treated",
+                "noise_sd_control",
+                "noise_sd_treated",
+            )
+            if key in dat.diagnostics
+        },
     }
 
 
@@ -1225,6 +1341,10 @@ def run_replication(
         scenario=str(task["scenario"]),
         calibration=calibration,
         seed=int(task["dgp_seed"]),
+        treatment_noise_scales=task.get(
+            "treatment_noise_scales", config.get("treatment_noise_scales")
+        ),
+        late_options=task.get("late_options", config.get("late_options")),
     )
     pooled_kernel_methods = {
         "orthogonal_nosplit",
@@ -1430,7 +1550,9 @@ def run_replication(
                     "evaluation_n": int(len(testing_index)),
                     "bandwidth_source": "testing_pool",
                     "split": {
-                        "scheme": "fixed 50/50 split within each observed D group",
+                        "scheme": ("fixed 50/50 split within each instrument A group"
+                                   if task["design"] == "late_iv" else
+                                   "fixed 50/50 split within each observed D group"),
                         "estimation_fold": 0,
                         "testing_fold": 1,
                         "split_seed": split_seed,
