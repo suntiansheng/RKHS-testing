@@ -64,7 +64,7 @@ def atomic_write_gzip_csv(path: Path, frame: pd.DataFrame) -> None:
 
 
 def validate_config(config: dict) -> None:
-    """Require the agreed experiment, even when an input is an incomplete shard."""
+    """Validate the CATE design and tuning, including incomplete shards."""
     expected = {"scenarios": ["neural_composition"], "dimensions": [20],
                 "n": 400, "rho": .5, "sigma": 1., "alpha": LEVEL,
                 "bootstrap_draws": 200, "replications": REPLICATIONS,

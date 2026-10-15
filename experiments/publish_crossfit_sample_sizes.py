@@ -1,8 +1,7 @@
 """Validate and plot the n=120,160 extension beside the completed n=200 study.
 
-Original simulations are read-only. Preserve the original null screens and add
-the prespecified joint 51-cell screen for the combined figures. All curves are
-retained; marked panels require interpretation alongside their null calibration.
+The combined figures use archived simulation results and the prespecified joint
+51-cell null screen. The original run-level screens are preserved.
 """
 
 from __future__ import annotations
