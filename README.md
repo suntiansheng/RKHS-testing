@@ -38,7 +38,7 @@ older suffixes such as `_v9` are retained as asset names.
 | Manuscript content | Supplied figure assets |
 | --- | --- |
 | Main regression experiment and three supplementary alternatives | `simulation_hierarchical_v9.pdf`, `simulation_{additive,product,composition}_compact_v9.pdf` |
-| Supplementary interpolation and regularized cross-fitting experiments | `simulation_crossfit_interpolation_v9.pdf`, `simulation_crossfit_additive_{null_size,power_difference}.pdf` |
+| Supplementary interpolation and regularized cross-fitting experiments | `simulation_crossfit_interpolation_v9.pdf`, `simulation_crossfit_additive_{null_size,power_ratio}.pdf` |
 | CATE and conditional LATE experiments | `simulation_{cate,late}_hierarchical.pdf` |
 | Four rows of the main CaSiNo comparison | `casino_baseline_cate.pdf`, `casino_baseline_max_satisfaction.pdf`, `casino_results_v9.pdf`, `casino_results_max_satisfaction.pdf` |
 | Supplementary opening-word contrasts | `casino_word_contrasts_v5.pdf` |
@@ -46,6 +46,9 @@ older suffixes such as `_v9` are retained as asset names.
 The main CaSiNo figure combines four assets in LaTeX. The repository generates
 each source asset. [results/README.md](results/README.md) describes the archived
 inputs, their provenance and the distinction between plotting and refitting.
+The regularized cross-fitting comparison reports NORD / CF-NORD rejection-rate
+ratios with paired Monte Carlo intervals; the plotting command also exports
+`crossfit_rejection_rate_ratios.csv`.
 
 ## Run the simulations
 

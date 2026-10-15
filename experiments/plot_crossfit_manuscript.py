@@ -29,8 +29,9 @@ SIZES = (120, 160)
 LEARNERS = (("gam", "Spline"), ("rf", "Random forest"),
             ("lasso", "Lasso"), ("dnn", "DNN"))
 BLUE, PINK, GRAY = "#0072B2", "#CC79A7", "#333333"
-STEMS = ("simulation_crossfit_additive_power_difference",
+STEMS = ("simulation_crossfit_additive_power_ratio",
          "simulation_crossfit_additive_null_size")
+RATIO_TABLE = "crossfit_rejection_rate_ratios.csv"
 
 
 def sha256(path):
@@ -97,6 +98,50 @@ def load_results(run):
     return differences, null
 
 
+def paired_ratios(differences):
+    """Compute rejection-rate ratios and paired log-scale Monte Carlo intervals."""
+    r = differences.replications.to_numpy(dtype=float)
+    require(np.isfinite(r).all() and (r > 1).all() and np.equal(r, np.rint(r)).all(),
+            "Replication counts must be integers greater than one")
+
+    def counts(values, name):
+        values = np.asarray(values, dtype=float)
+        require(np.isfinite(values).all()
+                and np.allclose(values, np.rint(values), atol=1e-8, rtol=0)
+                and (values >= 0).all() and (values <= r).all(),
+                f"Invalid {name} counts")
+        return np.rint(values).astype(np.int64)
+
+    full = counts(differences.full_power.to_numpy() * r, "NORD rejection")
+    crossfit = counts(differences.crossfit_power.to_numpy() * r, "CF-NORD rejection")
+    b = counts(differences.full_only_rejections, "NORD-only rejection")
+    c = counts(differences.crossfit_only_rejections, "CF-NORD-only rejection")
+    both = full - b
+    neither = r.astype(np.int64) - both - b - c
+    require(np.array_equal(both, crossfit - c)
+            and (both >= 0).all() and (neither >= 0).all(),
+            "Inconsistent paired rejection counts")
+    require((full > 0).all() and (crossfit > 0).all(),
+            "Log-scale ratio intervals require positive rejection counts for both methods")
+
+    ratio = full / crossfit
+    # Paired delta-method variance, using the sample covariance with ddof=1.
+    se = np.sqrt((r / (r - 1)) * (b + c) / (full.astype(float) * crossfit))
+    z = norm.ppf(.975)
+    result = differences[["n", "learner", "propensity_mode", "amplitude", "folds",
+                          "replications", "full_power", "crossfit_power",
+                          "full_only_rejections", "crossfit_only_rejections"]].copy()
+    result["full_rejections"] = full
+    result["crossfit_rejections"] = crossfit
+    result["both_rejections"] = both
+    result["neither_rejections"] = neither
+    result["rejection_rate_ratio"] = ratio
+    result["paired_log_mc_se"] = se
+    result["ci_lower"] = ratio * np.exp(-z * se)
+    result["ci_upper"] = ratio * np.exp(z * se)
+    return result
+
+
 def style():
     plt.rcParams.update({
         "font.family": "DejaVu Sans", "font.size": 9, "axes.labelsize": 9,
@@ -113,30 +158,30 @@ def save(fig, output, stem):
     plt.close(fig)
 
 
-def power_difference(differences, output):
-    selected = differences[differences.propensity_mode.eq("estimated")]
+def power_ratio(ratios, output):
+    selected = ratios[ratios.propensity_mode.eq("estimated")]
     fig, axes = plt.subplots(2, 4, figsize=(7.6, 3.9), sharex=True, sharey=True)
     for row, n in enumerate(SIZES):
         for col, (learner, label) in enumerate(LEARNERS):
             ax = axes[row, col]
             data = selected[selected.n.eq(n) & selected.learner.eq(learner)].sort_values("amplitude")
-            y = data.full_minus_crossfit
+            y = data.rejection_rate_ratio
             ax.errorbar(data.amplitude, y,
                         yerr=np.vstack([y - data.ci_lower, data.ci_upper - y]),
                         color=BLUE, marker="o", markersize=3.5, capsize=2,
                         elinewidth=.9, linewidth=1.4)
             ax.set_title(f"{label}, $n={n}$", pad=5)
-            ax.axhline(0, color=".5", linestyle=":", linewidth=.8)
+            ax.axhline(1, color=".5", linestyle=":", linewidth=.8)
             ax.grid(axis="y", color=".9", linewidth=.5)
             ax.set_axisbelow(True)
             ax.set_xlim(-.1, 6.1)
-            ax.set_ylim(-.06, .20)
+            ax.set_ylim(.5, 1.7)
             ax.set_xticks([0, 2, 4, 6])
-            ax.set_yticks([0, .1, .2])
-    fig.supylabel("Power difference", x=.015, fontsize=9)
+            ax.set_yticks([.6, .8, 1, 1.2, 1.4, 1.6])
+    fig.supylabel("Rejection-rate ratio", x=.015, fontsize=9)
     fig.supxlabel("Signal amplitude $a$", y=.135, fontsize=9)
     handle = Line2D([], [], color=BLUE, marker="o", markersize=4)
-    fig.legend([handle], ["NORD - CF-NORD ($K=2$); pointwise 95% paired intervals"],
+    fig.legend([handle], ["NORD / CF-NORD ($K=2$); pointwise 95% paired intervals"],
                loc="lower center", bbox_to_anchor=(.51, .049), frameon=False)
     fig.subplots_adjust(left=.082, right=.992, top=.92, bottom=.245, wspace=.18, hspace=.57)
     save(fig, output, STEMS[0])
@@ -184,10 +229,12 @@ def null_size(null, output):
 def build(run, output):
     run, output = Path(run).resolve(), Path(output).resolve()
     differences, null = load_results(run)
+    ratios = paired_ratios(differences)
     output.mkdir(parents=True, exist_ok=True)
     style()
-    power_difference(differences, output)
+    power_ratio(ratios, output)
     null_size(null, output)
+    ratios.to_csv(output / RATIO_TABLE, index=False)
     names = ["config.json", "validation.json", "summary.csv", "paired_differences.csv", "null_size.csv"]
     provenance = {
         "sample_sizes": list(SIZES), "folds": 2,
@@ -196,8 +243,12 @@ def build(run, output):
         "source_sha256": {name: sha256(run / name) for name in names},
         "builder_sha256": sha256(__file__),
         "output_sha256": {f"{stem}.pdf": sha256(output / f"{stem}.pdf") for stem in STEMS},
-        "interval": "Pointwise paired normal interval: mean(d) +/- Phi^-1(.975) * sd(d, ddof=1)/sqrt(R)",
-        "validation": "Paired differences, Monte Carlo intervals and archived null counts verified.",
+        "ratio_table_sha256": sha256(output / RATIO_TABLE),
+        "ratio": "NORD rejection probability / CF-NORD rejection probability",
+        "interval": ("Pointwise paired log-scale normal interval: ratio * exp(+/- Phi^-1(.975) * s); "
+                     "s^2 = R/(R-1) * (NORD-only + CF-NORD-only) / "
+                     "(NORD rejections * CF-NORD rejections)"),
+        "validation": "Paired rejection counts, ratio intervals and archived null counts verified.",
     }
     (output / "crossfit_manuscript_validation.json").write_text(json.dumps(provenance, indent=2) + "\n")
     return provenance

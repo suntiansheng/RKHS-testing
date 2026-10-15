@@ -32,9 +32,25 @@ python experiments/plot_crossfit_manuscript.py
 The command reads the five compact tables and metadata files in
 `results/crossfit_comparison/n120_n160_k2/` and writes the two manuscript figures
 to `results/figures/`. It verifies paired differences and their Monte Carlo
-intervals, Wilson intervals and the archived null counts. The 34 null
+intervals in the archive, Wilson intervals and the archived null counts. The 34 null
 configurations comprise 16 estimated-propensity procedures, 16 known-propensity
-procedures and two oracles. Error bars show pointwise Monte Carlo intervals.
+procedures and two oracles.
+
+Figure S3 reports the NORD / CF-NORD rejection-rate ratio, with a reference line
+at one and pointwise 95% paired Monte Carlo intervals. The point at zero
+amplitude compares null rejection probabilities. The plotting command exports
+`crossfit_rejection_rate_ratios.csv`, containing all 144 estimated- and
+known-propensity comparisons, paired rejection counts, ratios and interval
+endpoints. The figure uses the 72 estimated-propensity comparisons.
+
+For `R` paired replications, let `N_full` and `N_cf` be the rejection counts and
+let `b` and `c` count replications in which only NORD or only CF-NORD rejects.
+The interval is `ratio * exp(+/- 1.95996 * s)`, where
+`s^2 = R/(R-1) * (b+c)/(N_full*N_cf)`. This is the delta-method variance of the
+log ratio using the paired sample covariance with denominator `R-1`.
+Both rejection counts are positive in every archived cell. A zero count stops
+the calculation with an error; no pseudocount is added. The null-size figure
+continues to use pointwise 95% Wilson intervals.
 
 ## Run the simulation
 
@@ -70,9 +86,11 @@ python experiments/crossfit_comparison.py \
 
 ```sh
 OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 \
-python -m unittest discover -s tests -p test_crossfit_comparison.py
+python -m unittest discover -s tests -p 'test_crossfit*.py'
 ```
 
 These checks cover multiplier centering, score-error variance, independent
 balanced folds, the upper-tail convention for zero scores, and damaged
-checkpoints.
+checkpoints. The plotting checks compare the ratio intervals with an explicit
+paired-indicator covariance calculation, verify reciprocal intervals and zero
+count handling, and check that all eight panels include every amplitude.
