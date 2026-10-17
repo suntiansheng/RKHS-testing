@@ -29,7 +29,7 @@ across hardware or library versions, especially for forests and neural networks.
 python reproduce_figures.py
 ```
 
-This verifies the supplied result-table hashes and writes all **14 figure PDFs**,
+This verifies the supplied result-table hashes and writes all **16 figure PDFs**,
 summary tables and a reproduction manifest to `results/figures/jrssb/`.
 Use `--output PATH` to choose another directory. No model fitting, corpus download
 or external manuscript directory is needed. The filenames match the submission;
@@ -39,7 +39,8 @@ older suffixes such as `_v9` are retained as asset names.
 | --- | --- |
 | Main regression experiment and three supplementary alternatives | `simulation_hierarchical_v9.pdf`, `simulation_{additive,product,composition}_compact_v9.pdf` |
 | Supplementary interpolation and regularized cross-fitting experiments | `simulation_crossfit_interpolation_v9.pdf`, `simulation_crossfit_additive_{null_size,power_ratio}.pdf` |
-| CATE and conditional LATE experiments | `simulation_{cate,late}_hierarchical.pdf` |
+| Main CATE and conditional LATE experiments (four tests) | `simulation_{cate,late}_hierarchical.pdf` |
+| Supplementary CATE and conditional LATE comparisons including CF-NORD (five tests) | `simulation_{cate,late}_hierarchical_crossfit.pdf` |
 | Four rows of the main CaSiNo comparison | `casino_baseline_cate.pdf`, `casino_baseline_max_satisfaction.pdf`, `casino_results_v9.pdf`, `casino_results_max_satisfaction.pdf` |
 | Supplementary opening-word contrasts | `casino_word_contrasts_v5.pdf` |
 
@@ -82,14 +83,21 @@ paired NORD comparison and signal-cancellation diagnostic.
 For CATE and conditional LATE:
 
 ```sh
-python experiments/cate_simulation.py --jobs 8
-python experiments/cate_report.py --inputs runs/cate_hierarchical/shards/* --output runs/cate_hierarchical/report
-python experiments/late_simulation.py --jobs 8
-python experiments/late_report.py --inputs runs/late_hierarchical/shards/* --output runs/late_hierarchical/report
+python experiments/cate_simulation.py --output runs/cate_hierarchical_crossfit --jobs 8
+python experiments/cate_report.py --inputs runs/cate_hierarchical_crossfit/shards/* --output runs/cate_hierarchical_crossfit/report
+python experiments/late_simulation.py --output runs/late_hierarchical_crossfit --jobs 8
+python experiments/late_report.py --inputs runs/late_hierarchical_crossfit/shards/* --output runs/late_hierarchical_crossfit/report
 ```
 
 See the [CATE](experiments/cate_readme.md) and [LATE](experiments/late_readme.md)
-instructions for the data-generating processes, paired seeds and oracle.
+instructions for the data-generating processes, paired seeds and oracle. Each
+design compares NORD, two-fold CF-NORD, single-split, Yan and oracle. The four
+fitted tests use each of the four nuisance learners, giving 17 distinct
+test–learner combinations with the shared oracle. CF-NORD pools held-out scores
+from all 400 observations and uses the same kernel and multiplier draws as
+NORD and oracle. The reports include paired NORD-minus-CF-NORD comparisons in
+`paired_crossfit_differences.csv`. The main figures retain NORD, single-split,
+Yan and oracle; the supplementary figures add CF-NORD.
 
 For the two supplementary cross-fitting experiments:
 

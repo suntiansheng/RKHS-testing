@@ -22,15 +22,17 @@ The supplementary interpolation and small-sample cross-fitting studies have
 separate runners under `../experiments/`.
 
 The additional CATE experiment uses the existing hierarchical design with
-treatment-arm noise standard deviations 1 and 1.5. It compares NORD,
-single-split, Yan, and oracle with all four outcome learners; see
+treatment-arm noise standard deviations 1 and 1.5. It compares NORD, CF-NORD,
+single-split and Yan with all four outcome learners, plus a shared oracle; see
 [the CATE instructions](../experiments/cate_readme.md).
 
 The `late_iv` design adds a valid binary instrument, endogenous treatment,
 and a constant 0.6 first stage. All tests use the instrument as the group
 variable to test the zero conditional-LATE null. The hierarchical signal,
 learners, and calibration budgets match CATE; see [the LATE
-instructions](../experiments/late_readme.md) for the construction.
+instructions](../experiments/late_readme.md) for the construction. Both main
+figures retain NORD, single-split, Yan and oracle; the supplementary figures
+add CF-NORD.
 
 Outcome learners are cubic-spline GAM, random forest, Lasso, and a neural
 network. Propensity is estimated by spline logistic regression using the first
@@ -55,7 +57,11 @@ Gaussian multipliers are centered
 within each draw; p-values use the plus-one correction and rejection occurs
 when the p-value is at most the test level. Yan's statistic uses separate sample bandwidths and
 paired second moments. Single-split bandwidths and scores use only the test
-half. Cross-fitting uses stratified folds.
+half. The CATE and LATE CF-NORD comparisons use two balanced folds from an
+independent random permutation, shared across learners and amplitudes. Nuisance
+fitting, preprocessing and tuning use only the training fold. CF-NORD pools
+the held-out scores from all 400 observations and shares the full-sample kernel
+and multiplier draws with NORD and oracle.
 
 Runs checkpoint atomically and resume on the same command. Configuration,
 source, and task-grid hashes prevent incompatible resumes. `--retry-failures`

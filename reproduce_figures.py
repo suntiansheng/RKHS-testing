@@ -22,7 +22,8 @@ MANUSCRIPT_NAMES = {
     "simulation_composition_compact": "simulation_composition_compact_v9",
     "simulation_crossfit_interpolation": "simulation_crossfit_interpolation_v9",
 }
-CAUSAL_NAMES = ("simulation_cate_hierarchical", "simulation_late_hierarchical")
+CAUSAL_NAMES = ("simulation_cate_hierarchical", "simulation_late_hierarchical",
+                "simulation_cate_hierarchical_crossfit", "simulation_late_hierarchical_crossfit")
 WORD_NAME = "casino_word_contrasts_v5"
 FIGURE_NAMES = (tuple(MANUSCRIPT_NAMES.values()) + tuple(plot_crossfit_manuscript.STEMS)
                 + CAUSAL_NAMES + tuple(plot_joint.FIGURES.values()) + (WORD_NAME,))
@@ -58,11 +59,12 @@ def main(argv=None):
     for name, report_module in (("cate", cate_report), ("late", late_report)):
         directory = RESULTS / f"{name}_hierarchical"
         summary = pd.read_csv(directory / "rejection_summary.csv")
-        if (len(summary) != 156 or not summary.n_valid.eq(300).all()
+        if (len(summary) != 204 or not summary.n_valid.eq(300).all()
                 or not summary.n_failed.eq(0).all() or not summary.n_missing.eq(0).all()):
             raise ValueError(f"Incomplete {name.upper()} result archive")
         null = pd.read_csv(directory / "null_size.csv")
         report_module.plot_power(summary, null, output)
+        report_module.plot_power(summary, null, output, include_crossfit=True)
     plot_joint.create_figures(RESULTS / "casino", output)
     application_plot.configure_style()
     words = pd.read_csv(RESULTS / "casino/word_log_odds.csv")

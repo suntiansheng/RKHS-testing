@@ -2,7 +2,7 @@
 
 This experiment uses the existing sparse hierarchical baseline `b_N` and signal
 `f_N`, Gaussian covariates with `n=400`, `p=20`, and the same reference-sample
-normalization. The four tests, four nuisance learners, tuning settings,
+normalization. The five tests, four nuisance learners, tuning settings,
 amplitude grid, and calibration budgets match the CATE experiment. The
 configuration is `simulation/configs/late.json`.
 
@@ -35,9 +35,9 @@ mu(X) = E[Y | X] = b_N(X) + 0.2 + 0.6 pi(X) a f_N(X).
 ```
 
 Testing equality of the two instrument-specific outcome regressions therefore
-tests whether conditional LATE is zero almost surely. NORD and single split
-use score `(Y - mu_hat(X)) * (A - pi_hat(X))`; Yan fits the two instrument-specific
-outcome regressions. In the shared simulation interface, the field `d` stores
+tests whether conditional LATE is zero almost surely. NORD, CF-NORD and single
+split use score `(Y - mu_hat(X)) * (A - pi_hat(X))`; Yan fits the two
+instrument-specific outcome regressions. In the shared simulation interface, the field `d` stores
 the instrument for this design; actual treatment counts are retained in the
 data-generation diagnostics. Tests do not group observations
 by actual treatment or estimate a Wald ratio. The oracle uses the displayed
@@ -55,11 +55,11 @@ experiment does not assess procedures for weak instruments.
 From the repository root:
 
 ```sh
-python experiments/late_simulation.py --jobs 8
+python experiments/late_simulation.py --output runs/late_hierarchical_crossfit --jobs 8
 ```
 
 The default run has 180 resumable shards of 100 learner/data tasks, for 18,000
-tasks and 46,800 test records. Each process uses one numerical thread and
+tasks and 61,200 test records. Each process uses one numerical thread and
 runs the existing estimators and tests. The runner records source hashes,
 configuration, interpreter, and shard grid, and executes frozen source copies
 in `protocol_sources/`. Repeat the same command to resume. A changed source,
@@ -72,30 +72,42 @@ python experiments/late_simulation.py --output runs/late_execution_check --delta
 ```
 
 There are 300 replications per amplitude and 200 centered Gaussian multiplier
-draws for NORD, single-split, and oracle; Yan retains its normal calibration.
+draws for NORD, CF-NORD, single-split, and oracle; Yan retains its normal
+calibration.
 The amplitude grid is `0, 0.1, 0.2, 0.3, 0.5, 0.8, 1.2, 1.6, 2.5, 4, 6, 20`.
 The fitted methods use cubic splines, random forest, Lasso, and the original
 DNN. Instrument propensity is estimated using the same spline logistic
 procedure. The oracle is computed once per dataset and shown in every panel,
-giving 13 distinct test–learner combinations and 156 amplitude cells.
+giving 17 distinct test–learner combinations and 204 amplitude cells.
+
+CF-NORD uses two balanced folds formed by an independent random permutation,
+shared across learners and amplitudes within each replication. Nuisance fitting,
+preprocessing and tuning use only the training fold. The test pools all 400
+held-out scores and uses the same full-sample kernel and multiplier draws as
+NORD and oracle.
 
 Seed base 8012026 and the reference calibration match the existing experiments.
 Within this IV design, covariates, instrument assignments, principal strata,
 actual treatment, and standard normal errors are paired across amplitudes
 and learners. The design-specific seed key keeps LATE draws separate from
-CATE draws. Full-sample NORD and oracle share kernel and multiplier seeds.
+CATE draws. NORD, CF-NORD and oracle share kernel and multiplier seeds.
 
 ## Summaries and figures
 
 ```sh
-python experiments/late_report.py --inputs runs/late_hierarchical/shards/* --output runs/late_hierarchical/report
+python experiments/late_report.py --inputs runs/late_hierarchical_crossfit/shards/* --output runs/late_hierarchical_crossfit/report
 ```
 
 The report verifies matching raw records and instrument-group diagnostics,
-then writes rejection rates, a null-size table, paired NORD-minus-single-split
-comparisons, and the four-panel figure `simulation_late_hierarchical.pdf`.
-Its styling matches the CATE figure. Pointwise binomial intervals are saved in
-the summary tables. Failed and missing runs are reported separately.
+then writes rejection rates, a null-size table, and two four-panel figures.
+`simulation_late_hierarchical.pdf` retains NORD, single-split, Yan and oracle
+for the main paper; `simulation_late_hierarchical_crossfit.pdf` adds CF-NORD
+for the supplement. Both figures use the CATE figure style.
+
+`paired_differences.csv` reports
+NORD-minus-single-split rejection rates; `paired_crossfit_differences.csv`
+reports NORD-minus-CF-NORD rejection rates, both with paired Monte Carlo
+intervals. Pointwise binomial intervals are saved in the summary tables. Failed and missing runs are reported separately.
 
 The report preserves `combined_raw_results.csv.gz` and
 `combined_dgp_diagnostics.csv.gz`, with deterministic gzip timestamps and

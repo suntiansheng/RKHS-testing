@@ -87,21 +87,21 @@ class LateReportTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "Duplicate"):
             report.validate_diagnostics(pd.concat([diagnostic, diagnostic.iloc[:1]]), raw)
 
-    def test_screen_keeps_13_late_cells_and_withholds_incomplete_family(self):
+    def test_screen_keeps_17_late_cells_and_withholds_incomplete_family(self):
         raw, _ = data(reps=300)
         selected = raw.learner.eq("gam") & raw.method.eq("orthogonal_nosplit")
         raw.loc[selected, "reject"] = (raw.loc[selected, "rep"] <= 60).astype(int)
         raw.loc[selected, "p_value"] = np.where(raw.loc[selected, "reject"], .01, .7)
         summary = report.summarize(raw)
         null = report.screen_size(summary)
-        self.assertEqual(len(summary), 156)
-        self.assertEqual(len(null), 13)
-        self.assertTrue(null.family.eq("late_13_cells").all())
+        self.assertEqual(len(summary), 204)
+        self.assertEqual(len(null), 17)
+        self.assertTrue(null.family.eq("late_17_cells").all())
         self.assertEqual(int(null.learner.eq("oracle").sum()), 1)
         flagged = null[null.size_screen.eq("flagged")]
         self.assertEqual(len(flagged), 1)
         self.assertAlmostEqual(flagged.iloc[0].holm_adjusted_p_value,
-                               13 * binomtest(60, 300, .05).pvalue)
+                               17 * binomtest(60, 300, .05).pvalue)
         raw.loc[0, ["status", "reject", "p_value"]] = ["failed", np.nan, np.nan]
         summary = report.summarize(raw)
         self.assertEqual((summary.iloc[0].n_valid, summary.iloc[0].n_failed), (299, 1))
@@ -122,6 +122,8 @@ class LateReportTests(unittest.TestCase):
             text = (output / "late_report.md").read_text()
             self.assertIn("INCOMPLETE", text)
             self.assertIn("null results are incomplete", text)
+            self.assertIn("CF-NORD", text)
+            self.assertTrue((output / "paired_crossfit_differences.csv").exists())
             self.assertIn("ATE is 0.4", text)
             self.assertFalse(list(output.glob("*.pdf")))
             manifest = json.loads((output / "report_manifest.json").read_text())
@@ -129,29 +131,50 @@ class LateReportTests(unittest.TestCase):
                 archive = output / f"{name}.csv.gz"
                 self.assertEqual(len(pd.read_csv(archive)), len(frame))
                 self.assertEqual(manifest[name]["sha256"], hashlib.sha256(archive.read_bytes()).hexdigest())
-            self.assertEqual(manifest["size_family"], "late_13_cells")
+            self.assertEqual(manifest["size_family"], "late_17_cells")
             self.assertIn("shared_report_script_sha256", manifest)
             write_run(right, raw[raw.rep.gt(1)], diagnostic[diagnostic.rep.gt(1)], source="changed core")
             with self.assertRaisesRegex(ValueError, "inconsistent configurations"):
                 report.load_inputs([left, right])
 
-    def test_figure_keeps_four_panels_and_all_curves_without_shading(self):
+    def test_main_and_supplement_figures_keep_distinct_method_sets(self):
         import matplotlib.figure
         raw, _ = data()
         summary = report.summarize(raw)
-        captured = []
-        with patch.object(matplotlib.figure.Figure, "savefig",
-                          autospec=True, side_effect=lambda figure, *args, **kwargs: captured.append(figure)):
-            report.plot_power(summary, report.screen_size(summary), Path("unused"))
-        self.assertEqual(len(captured), 2)
-        figure = captured[0]
-        self.assertEqual(len(figure.axes), 4)
-        self.assertTrue(all(len(axis.lines) == 5 for axis in figure.axes))
-        self.assertTrue(all(len(axis.collections) == 0 for axis in figure.axes))
-        self.assertEqual([text.get_text() for text in figure.legends[0].get_texts()],
-                         [row[1] for row in report.METHODS])
-        self.assertFalse(any("Shading" in text.get_text() or "Amplitude grid" in text.get_text()
-                             for text in figure.texts))
+        for include_crossfit in (False, True):
+            with self.subTest(include_crossfit=include_crossfit):
+                captured = []
+                with patch.object(matplotlib.figure.Figure, "savefig", autospec=True,
+                                  side_effect=lambda figure, path, **kwargs: captured.append((figure, path))):
+                    if include_crossfit:
+                        report.plot_power(summary, report.screen_size(summary), Path("unused"),
+                                          include_crossfit=True)
+                    else:
+                        report.plot_power(summary, report.screen_size(summary), Path("unused"))
+                expected_labels = ["NORD", "Single split", "Yan", "Oracle"]
+                expected_colors = ["#0072B2", "#D55E00", "#009E73", "#333333"]
+                if include_crossfit:
+                    expected_labels.insert(1, "CF-NORD")
+                    expected_colors.insert(1, "#CC79A7")
+                suffix = "_crossfit" if include_crossfit else ""
+                self.assertEqual([path.name for _, path in captured],
+                                 [f"simulation_late_hierarchical{suffix}.{extension}"
+                                  for extension in ("pdf", "png")])
+                figure = captured[0][0]
+                self.assertEqual(len(figure.axes), 4)
+                np.testing.assert_array_equal(figure.get_size_inches(), [7.6, 2.5])
+                self.assertEqual([text.get_text() for text in figure.legends[0].get_texts()], expected_labels)
+                for axis in figure.axes:
+                    self.assertEqual(len(axis.lines), len(expected_labels) + 1)
+                    self.assertEqual([line.get_color() for line in axis.lines[:-1]], expected_colors)
+                    self.assertEqual(len(axis.collections), 0)
+                    self.assertEqual(axis.get_xlim(), (-.3, 20.3))
+                    self.assertEqual(axis.get_ylim(), (-.025, 1.035))
+                    np.testing.assert_array_equal(axis.get_xticks(), [0, 6, 12, 20])
+                    if include_crossfit:
+                        self.assertEqual(axis.lines[1].get_linestyle(), "--")
+                self.assertFalse(any("Shading" in text.get_text() or "Amplitude grid" in text.get_text()
+                                     for text in figure.texts))
 
 
 if __name__ == "__main__":

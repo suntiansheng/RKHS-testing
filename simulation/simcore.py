@@ -1142,6 +1142,18 @@ def propensity_performance(
     }
 
 
+def independent_folds(n: int, folds: int, seed: int) -> np.ndarray:
+    """Assign balanced outer folds independently of all observed variables."""
+
+    if (isinstance(folds, bool) or not isinstance(folds, (int, np.integer))
+            or not 2 <= folds <= n):
+        raise ValueError("Cross-fitting requires an integer number of folds between 2 and n.")
+    assignment = np.empty(n, dtype=int)
+    permutation = np.random.default_rng(seed).permutation(n)
+    assignment[permutation] = np.arange(n) % folds
+    return assignment
+
+
 def stratified_folds(d: np.ndarray, folds: int, seed: int) -> np.ndarray:
     if folds < 2:
         raise ValueError("Cross-fitting requires at least two folds.")
@@ -1596,10 +1608,9 @@ def run_replication(
         assert bandwidth_pool is not None and kernel_pool is not None
         started = time.perf_counter()
         try:
-            folds = int(config.get("crossfit_folds", 2))
-            fold_id = stratified_folds(
-                dat.d, folds, stable_seed(task["fit_seed"], "folds")
-            )
+            folds = config.get("crossfit_folds", 2)
+            fold_seed = stable_seed(task["dgp_seed"], "crossfit_folds", folds)
+            fold_id = independent_folds(len(dat.y), folds, fold_seed)
             mu_hat = np.full(len(dat.y), np.nan)
             e_hat = np.full(len(dat.y), np.nan)
             fold_diagnostics: list[dict[str, Any]] = []
@@ -1675,6 +1686,8 @@ def run_replication(
                 ),
                 "selected_epoch": float(np.mean(epochs)) if epochs else None,
                 "parameter_count": float(np.mean(parameters)) if parameters else None,
+                "fold_assignment": "independent",
+                "fold_seed": fold_seed,
                 "folds": fold_diagnostics,
                 **propensity_performance(dat.d, e_hat),
             }

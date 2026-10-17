@@ -90,6 +90,11 @@ def validate_config(config: Mapping[str, Any]) -> None:
         raise ValueError("Every dimension must be at least 8.")
     if int(config["n"]) < 8:
         raise ValueError("The pooled sample size must be at least 8.")
+    if "orthogonal_crossfit" in config["methods"]:
+        folds = config.get("crossfit_folds", 2)
+        if (isinstance(folds, bool) or not isinstance(folds, int)
+                or not 2 <= folds <= int(config["n"])):
+            raise ValueError("Cross-fitting requires an integer number of folds between 2 and n.")
     if not math.isclose(float(config["target_pi"]), 0.5, rel_tol=0.0, abs_tol=1e-14):
         raise ValueError("The pooled random-shift design requires target_pi=0.5.")
     if int(config["replications"]) < 1 or int(config["bootstrap_draws"]) < 1:

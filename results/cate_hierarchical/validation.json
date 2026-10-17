@@ -1,20 +1,25 @@
 {
-  "calibration_exactly_matches_existing_hierarchical_p20": true,
-  "seed_base": 8012026,
-  "source_hashes_frozen": {
-    "experiments/cate_simulation.py": "d511b6dabd9ef3f0f86d461cea77249f020cd656a7d172963877b1cf6e08a2fa",
-    "simulation/simcore.py": "c4c171d2ee93e9a4eb6882cef572e1e51e29ea2a450ce81b26a64d15f14812d6",
-    "simulation/run_simulation.py": "1e121e8fe2e78167168cc2896b557075fe4835d02dd818650ba3274564ec6fbf",
-    "simulation/configs/cate.json": "b1c1e033eba4d5fa77201cc14bccd16feee72d75d36af3af4fd1a7e163e47971"
-  },
+  "description": "Completed CATE simulation with two-fold CF-NORD.",
   "complete": true,
   "distinct_tasks": 18000,
-  "valid_test_results": 46800,
-  "distinct_cells": 156,
+  "valid_test_results": 61200,
+  "distinct_cells": 204,
   "replications_per_cell": 300,
+  "bootstrap_draws": 200,
+  "crossfit_folds": 2,
   "failed_results": 0,
   "missing_results": 0,
   "duplicate_results": 0,
-  "elapsed_simulation_seconds": 1227.8186653326266,
-  "description": "Completed CATE simulation; source hashes refer to the original run."
+  "legacy_test_results_unchanged": 46800,
+  "legacy_comparison": "All non-runtime fields, including fit diagnostics, match the archived run.",
+  "crossfit_test_results": 14400,
+  "crossfit_score_n": 400,
+  "crossfit_fold_assignment": "independent balanced permutation shared across learners and amplitudes",
+  "source_hashes_frozen": {
+    "experiments/cate_simulation.py": "d511b6dabd9ef3f0f86d461cea77249f020cd656a7d172963877b1cf6e08a2fa",
+    "simulation/simcore.py": "5ab70c794249694460cd9163c73d041c745593b4ea17dc0af945dec5249e0789",
+    "simulation/run_simulation.py": "0c78dd26029b8b67d1a28f74f5a14450d1ceb5c430d5d181cb909d073b67c947",
+    "simulation/configs/cate.json": "88e8dcabc1398417395e8baf6b9a747dcac15c9f51bd1025ed5a6a42f9f66560"
+  },
+  "elapsed_simulation_seconds": 3616.44545670785
 }

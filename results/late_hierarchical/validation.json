@@ -1,8 +1,26 @@
 {
-  "simulation_cells": 156,
-  "test_results": 46800,
-  "failures": 0,
-  "bootstrap_draws": 200,
+  "description": "Completed LATE simulation with two-fold CF-NORD.",
+  "complete": true,
+  "distinct_tasks": 18000,
+  "valid_test_results": 61200,
+  "distinct_cells": 204,
   "replications_per_cell": 300,
-  "description": "Completed conditional LATE simulation; compact tables distributed with the final submission."
+  "bootstrap_draws": 200,
+  "crossfit_folds": 2,
+  "failed_results": 0,
+  "missing_results": 0,
+  "duplicate_results": 0,
+  "legacy_test_results_unchanged": 46800,
+  "legacy_comparison": "All non-runtime fields, including fit diagnostics, match the archived run.",
+  "crossfit_test_results": 14400,
+  "crossfit_score_n": 400,
+  "crossfit_fold_assignment": "independent balanced permutation shared across learners and amplitudes",
+  "source_hashes_frozen": {
+    "experiments/late_simulation.py": "b039f2d537283bc362696c2e2f2f3cce27c8d3de83824d5ae86c950aba3b88c0",
+    "simulation/simcore.py": "5ab70c794249694460cd9163c73d041c745593b4ea17dc0af945dec5249e0789",
+    "simulation/run_simulation.py": "0c78dd26029b8b67d1a28f74f5a14450d1ceb5c430d5d181cb909d073b67c947",
+    "simulation/io_utils.py": "8d9b43acd8b65bad6557a009f78d65c69cf8a22d4a0f5c64a4d8b8309d7e1fc3",
+    "simulation/configs/late.json": "800f2e0993abacf3f607a088d58d1a64e896510a8f2caede3b7bef79d98ee034"
+  },
+  "elapsed_simulation_seconds": 3596.25607125042
 }

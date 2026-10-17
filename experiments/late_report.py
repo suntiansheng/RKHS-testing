@@ -19,7 +19,7 @@ sys.path.insert(0, str(ROOT / "experiments"))
 import cate_report as shared
 from cate_report import (AMPLITUDES, LEARNERS, METHODS, METHOD_LABELS, LEARNER_LABELS,
                          CELLS, REPLICATIONS, LEVEL, atomic_write_gzip_csv,
-                         paired_differences, atomic_write_csv, atomic_write_json,
+                         paired_differences, paired_crossfit_differences, atomic_write_csv, atomic_write_json,
                          file_hash, _canonical, _interval_text)
 
 LATE_OPTIONS = {"always_taker_probability": .2, "complier_probability": .6,
@@ -132,11 +132,12 @@ def summarize(raw: pd.DataFrame) -> pd.DataFrame:
 
 def screen_size(summary: pd.DataFrame) -> pd.DataFrame:
     null = shared.screen_size(summary)
-    null["family"] = "late_13_cells"
+    null["family"] = "late_17_cells"
     return null
 
 
-def plot_power(summary: pd.DataFrame, null: pd.DataFrame, output: Path) -> None:
+def plot_power(summary: pd.DataFrame, null: pd.DataFrame, output: Path, *,
+               include_crossfit: bool = False) -> None:
     import matplotlib
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
@@ -147,9 +148,11 @@ def plot_power(summary: pd.DataFrame, null: pd.DataFrame, output: Path) -> None:
                          "legend.fontsize": 8, "axes.spines.top": False,
                          "axes.spines.right": False, "pdf.fonttype": 42,
                          "axes.linewidth": .6, "lines.linewidth": 1.2})
+    methods = METHODS if include_crossfit else tuple(row for row in METHODS if row[0] != "orthogonal_crossfit")
+    suffix = "_crossfit" if include_crossfit else ""
     fig, axes = plt.subplots(1, 4, figsize=(7.6, 2.5), sharex=True, sharey=True)
     for ax, (learner, title) in zip(axes.flat, LEARNERS):
-        for method, label, color, marker, style in METHODS:
+        for method, label, color, marker, style in methods:
             selected_learner = "oracle" if method == "oracle_score" else learner
             selected = summary[summary.learner.eq(selected_learner) & summary.method.eq(method)].sort_values("delta")
             ax.plot(selected.delta, selected.rejection_rate, color=color, marker=marker,
@@ -164,12 +167,12 @@ def plot_power(summary: pd.DataFrame, null: pd.DataFrame, output: Path) -> None:
     fig.supylabel("Empirical rejection rate", x=.012, fontsize=9)
     fig.supxlabel(r"Signal amplitude $a$", y=.165, fontsize=9)
     handles = [Line2D([0], [0], color=color, marker=marker, linestyle=style,
-                      markersize=4, label=label) for _, label, color, marker, style in METHODS]
+                      markersize=4, label=label) for _, label, color, marker, style in methods]
     fig.legend(handles=handles, loc="lower center", bbox_to_anchor=(.52, .015),
-               ncol=4, frameon=False, handlelength=2.3, columnspacing=1.8)
+               ncol=len(methods), frameon=False, handlelength=2.3, columnspacing=1.8)
     fig.subplots_adjust(left=.075, right=.995, bottom=.36, top=.85, wspace=.16, hspace=.39)
     for extension in ("pdf", "png"):
-        fig.savefig(output / f"simulation_late_hierarchical.{extension}",
+        fig.savefig(output / f"simulation_late_hierarchical{suffix}.{extension}",
                     bbox_inches="tight", pad_inches=.04, dpi=220)
     plt.close(fig)
 
@@ -181,7 +184,9 @@ def write_report(summary: pd.DataFrame, null: pd.DataFrame, diagnostic: pd.DataF
     lines = ["# Conditional LATE simulation", "",
              "Status: **" + ("complete" if complete else "INCOMPLETE") + "**.", "",
              "One hierarchical-signal experiment uses n = 400, p = 20, 300 planned replications per amplitude, "
-             "nominal level 0.05, and 200 centered Gaussian multiplier draws. Yan uses its normal calibration.", "",
+             "nominal level 0.05, and 200 centered Gaussian multiplier draws. Yan uses its normal calibration. "
+             "CF-NORD uses two balanced folds drawn independently of the data, fits nuisance functions on the other fold, "
+             "and pools the held-out scores for the test.", "",
              "The instrument is A | X ~ Bernoulli(pi(X)). Independently of (X,A), U is uniform on [0,1], "
              "D(0) = 1{U <= 0.2}, D(1) = 1{U <= 0.8}, and C = 1{0.2 < U <= 0.8}. "
              "Observed treatment is D = D(A), and "
@@ -193,13 +198,13 @@ def write_report(summary: pd.DataFrame, null: pd.DataFrame, diagnostic: pd.DataF
              "zero conditional-LATE null in this design. The population LATE is zero at every amplitude. "
              "In contrast, the full-population CATE is 0.4 + 0.6 a f_N(X), and the ATE is 0.4. "
              "Treatment is endogenous through U. All tests compare instrument groups using (Y,X,A). "
-             "NORD and single split use score (Y - mu_hat(X))(A - pi_hat(X)); Yan fits the two "
+             "NORD, CF-NORD, and single split use score (Y - mu_hat(X))(A - pi_hat(X)); Yan fits the two "
              "instrument-specific outcome regressions. No procedure groups on observed D or estimates a Wald ratio. "
              "The oracle uses mu(X) = b_N(X) + 0.2 + 0.6 pi(X) a f_N(X) and the true instrument propensity.", "",
              f"Completed cells: {int(summary.complete.sum())}/{len(summary)}; "
              f"valid test results: {int(summary.n_valid.sum()):,}/{len(summary)*REPLICATIONS:,}; "
              f"failed results: {int(summary.n_failed.sum()):,}; missing results: {int(summary.n_missing.sum()):,}.", "",
-             "The 156 distinct amplitude–test–learner cells comprise 12 amplitudes times 13 combinations. "
+             "The 204 distinct amplitude–test–learner cells comprise 12 amplitudes times 17 combinations. "
              "The oracle is computed once per dataset and repeated in all four learner panels; these repetitions "
              "are not additional replications or additional size tests.", "",
              f"The {len(draws)} distinct observed replication draws have mean empirical instrument first stage "
@@ -223,13 +228,15 @@ def write_report(summary: pd.DataFrame, null: pd.DataFrame, diagnostic: pd.DataF
               "Pointwise 95% exact binomial intervals are available in "
               "`rejection_summary.csv` and the null table above.", "",
               "`rejection_summary.csv` contains every planned cell, including missing cells. "
-              "`paired_differences.csv` reports NORD minus single-split rejection rates using only matched successful "
-              "replications. Its pointwise normal Monte Carlo intervals use the sample variance of paired rejection "
+              "`paired_differences.csv` reports NORD minus single-split rejection rates, and "
+              "`paired_crossfit_differences.csv` reports NORD minus CF-NORD rejection rates. "
+              "Both use only matched successful replications. Their pointwise normal Monte Carlo intervals "
+              "use the sample variance of paired rejection "
               "differences and are not adjusted over amplitudes or learners. "
               "`combined_raw_results.csv.gz` and `combined_dgp_diagnostics.csv.gz` retain test-level results and "
               "principal-stratum, treatment, and first-stage diagnostics; their checksums are in `report_manifest.json`.", ""]
     if figure_output is not None:
-        image = Path(os.path.relpath(figure_output / "simulation_late_hierarchical.png", output))
+        image = Path(os.path.relpath(figure_output / "simulation_late_hierarchical_crossfit.png", output))
         lines += [f"![Conditional LATE rejection curves]({image.as_posix()})", ""]
     else:
         lines += ["Figures were not generated (`--skip-plots`).", ""]
@@ -261,13 +268,14 @@ def main(argv: Sequence[str] | None = None) -> int:
     atomic_write_csv(args.output / "rejection_summary.csv", summary)
     atomic_write_csv(args.output / "null_size.csv", null)
     atomic_write_csv(args.output / "paired_differences.csv", paired_differences(raw))
+    atomic_write_csv(args.output / "paired_crossfit_differences.csv", paired_crossfit_differences(raw))
     atomic_write_csv(args.output / "failed_results.csv", raw[raw.status.eq("failed")])
     atomic_write_json(args.output / "report_manifest.json", {
         "complete": bool(summary.complete.all()), "null_family_complete": bool(null.family_complete.all()),
         "expected_cells": len(summary), "completed_cells": int(summary.complete.sum()),
         "expected_test_results": len(summary)*REPLICATIONS, "valid_test_results": int(summary.n_valid.sum()),
         "failed_test_results": int(summary.n_failed.sum()), "missing_test_results": int(summary.n_missing.sum()),
-        "size_family": "late_13_cells", "size_flags": int(null.size_screen.eq("flagged").sum()),
+        "size_family": "late_17_cells", "size_flags": int(null.size_screen.eq("flagged").sum()),
         "oracle_counted_once": True, "all_planned_curves_retained": True, **archives,
         "interval_method": "pointwise 95% Clopper-Pearson", "inputs": provenance,
         "configuration": config, "report_script_sha256": file_hash(Path(__file__)),
@@ -277,6 +285,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     if figure_output is not None:
         figure_output.mkdir(parents=True, exist_ok=True)
         plot_power(summary, null, figure_output)
+        plot_power(summary, null, figure_output, include_crossfit=True)
     write_report(summary, null, diagnostic, args.output, figure_output=figure_output)
     print(f"{'Complete' if summary.complete.all() else 'INCOMPLETE'} LATE report: {args.output}")
     return 0

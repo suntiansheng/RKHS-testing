@@ -40,13 +40,14 @@
   ],
   "methods": [
     "orthogonal_nosplit",
+    "orthogonal_crossfit",
     "orthogonal_single_split",
     "yan",
     "oracle_score"
   ],
   "propensity_mode": "estimated",
   "propensity_clip": 0.01,
-  "crossfit_folds": 5,
+  "crossfit_folds": 2,
   "calibration_n": 100000,
   "learner_options": {
     "gam": {

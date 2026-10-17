@@ -28,13 +28,14 @@ LEARNERS = (("gam", "Spline"), ("rf", "Random forest"),
             ("lasso", "Lasso"), ("dnn", "DNN"))
 METHODS = (
     ("orthogonal_nosplit", "NORD", "#0072B2", "o", "-"),
+    ("orthogonal_crossfit", "CF-NORD", "#CC79A7", "D", "--"),
     ("orthogonal_single_split", "Single split", "#D55E00", "s", "-."),
     ("yan", "Yan", "#009E73", "^", ":"),
     ("oracle_score", "Oracle", "#333333", None, (0, (5, 2))),
 )
 METHOD_LABELS = {row[0]: row[1] for row in METHODS}
 LEARNER_LABELS = dict(LEARNERS) | {"oracle": "Shared oracle"}
-CELLS = tuple((learner, method[0]) for learner, _ in LEARNERS for method in METHODS[:3]) + (
+CELLS = tuple((learner, method[0]) for learner, _ in LEARNERS for method in METHODS[:-1]) + (
     ("oracle", "oracle_score"),)
 REPLICATIONS = 300
 LEVEL = .05
@@ -67,7 +68,7 @@ def validate_config(config: dict) -> None:
     """Validate the CATE design and tuning, including incomplete shards."""
     expected = {"scenarios": ["neural_composition"], "dimensions": [20],
                 "n": 400, "rho": .5, "sigma": 1., "alpha": LEVEL,
-                "bootstrap_draws": 200, "replications": REPLICATIONS,
+                "bootstrap_draws": 200, "replications": REPLICATIONS, "crossfit_folds": 2,
                 "target_pi": .5, "calibration_n": 100000,
                 "propensity_mode": "estimated", "designs": ["pooled_random_shift"],
                 "treatment_noise_scales": [1., 1.5]}
@@ -79,9 +80,11 @@ def validate_config(config: dict) -> None:
     if set(config.get("learners", [])) != {"gam", "rf", "lasso", "dnn", "oracle"}:
         raise ValueError("The CATE configuration must include four learners and the shared oracle")
     if set(config.get("methods", [])) != set(METHOD_LABELS):
-        raise ValueError("The CATE configuration must contain the four specified tests")
-    if len(config.get("designs", [])) != 1:
-        raise ValueError("The CATE report accepts one design")
+        raise ValueError("The CATE configuration must contain the five specified tests")
+    reference = json.loads((ROOT / "simulation/configs/cate.json").read_text())
+    for key, value in reference.items():
+        if key not in {"name", "methods", "learners"} and config.get(key) != value:
+            raise ValueError(f"CATE configuration requires {key}={value!r}")
 
 
 def validate_results(raw: pd.DataFrame, config: dict) -> None:
@@ -196,10 +199,10 @@ def summarize(raw: pd.DataFrame) -> pd.DataFrame:
 
 def screen_size(summary: pd.DataFrame) -> pd.DataFrame:
     null = summary[summary.delta.eq(0)].copy().reset_index(drop=True)
-    if set(null[["learner", "method"]].itertuples(index=False, name=None)) != set(CELLS) or len(null) != 13:
-        raise ValueError("The size-screen family must contain exactly 13 distinct null cells")
+    if set(null[["learner", "method"]].itertuples(index=False, name=None)) != set(CELLS) or len(null) != 17:
+        raise ValueError("The size-screen family must contain exactly 17 distinct null cells")
     complete = (null.n_valid.eq(REPLICATIONS) & null.n_failed.eq(0) & null.n_missing.eq(0)).all()
-    null["family"] = "cate_13_cells"
+    null["family"] = "cate_17_cells"
     null["family_complete"] = bool(complete)
     null["exact_binomial_p_value"] = np.nan
     null["holm_adjusted_p_value"] = np.nan
@@ -219,30 +222,40 @@ def screen_size(summary: pd.DataFrame) -> pd.DataFrame:
     return null
 
 
-def paired_differences(raw: pd.DataFrame) -> pd.DataFrame:
-    valid = raw[raw.status.eq("ok") & raw.method.isin([m[0] for m in METHODS[:2]])]
+def _paired_differences(raw: pd.DataFrame, method: str, name: str) -> pd.DataFrame:
+    methods = ["orthogonal_nosplit", method]
+    valid = raw[raw.status.eq("ok") & raw.method.isin(methods)]
     rows = []
     for learner, _ in LEARNERS:
         for amplitude in AMPLITUDES:
             group = valid[valid.learner.eq(learner) & valid.delta.eq(amplitude)]
             wide = group.pivot(index="rep", columns="method", values="reject").reindex(
-                columns=[m[0] for m in METHODS[:2]]).dropna()
+                columns=methods).dropna()
             difference = wide.iloc[:, 0] - wide.iloc[:, 1]
             count = len(difference)
             estimate = float(difference.mean()) if count else math.nan
             se = float(difference.std(ddof=1) / math.sqrt(count)) if count > 1 else math.nan
             half = norm.ppf(.975) * se
             rows.append({"learner": learner, "delta": amplitude, "n_pairs": count,
-                         "difference_nord_minus_single_split": estimate,
+                         f"difference_nord_minus_{name}": estimate,
                          "paired_monte_carlo_se": se,
                          "ci_lower": max(-1., estimate-half) if count > 1 else math.nan,
                          "ci_upper": min(1., estimate+half) if count > 1 else math.nan,
                          "nord_only_rejections": int(difference.eq(1).sum()),
-                         "single_split_only_rejections": int(difference.eq(-1).sum())})
+                         f"{name}_only_rejections": int(difference.eq(-1).sum())})
     return pd.DataFrame(rows)
 
 
-def plot_power(summary: pd.DataFrame, null: pd.DataFrame, output: Path) -> None:
+def paired_differences(raw: pd.DataFrame) -> pd.DataFrame:
+    return _paired_differences(raw, "orthogonal_single_split", "single_split")
+
+
+def paired_crossfit_differences(raw: pd.DataFrame) -> pd.DataFrame:
+    return _paired_differences(raw, "orthogonal_crossfit", "crossfit")
+
+
+def plot_power(summary: pd.DataFrame, null: pd.DataFrame, output: Path, *,
+               include_crossfit: bool = False) -> None:
     import matplotlib
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
@@ -253,9 +266,11 @@ def plot_power(summary: pd.DataFrame, null: pd.DataFrame, output: Path) -> None:
                          "legend.fontsize": 8, "axes.spines.top": False,
                          "axes.spines.right": False, "pdf.fonttype": 42,
                          "axes.linewidth": .6, "lines.linewidth": 1.2})
+    methods = METHODS if include_crossfit else tuple(row for row in METHODS if row[0] != "orthogonal_crossfit")
+    suffix = "_crossfit" if include_crossfit else ""
     fig, axes = plt.subplots(1, 4, figsize=(7.6, 2.5), sharex=True, sharey=True)
     for ax, (learner, title) in zip(axes.flat, LEARNERS):
-        for method, label, color, marker, style in METHODS:
+        for method, label, color, marker, style in methods:
             selected_learner = "oracle" if method == "oracle_score" else learner
             selected = summary[summary.learner.eq(selected_learner) & summary.method.eq(method)].sort_values("delta")
             ax.plot(selected.delta, selected.rejection_rate, color=color, marker=marker,
@@ -270,12 +285,12 @@ def plot_power(summary: pd.DataFrame, null: pd.DataFrame, output: Path) -> None:
     fig.supylabel("Empirical rejection rate", x=.012, fontsize=9)
     fig.supxlabel(r"Signal amplitude $a$", y=.165, fontsize=9)
     handles = [Line2D([0], [0], color=color, marker=marker, linestyle=style,
-                      markersize=4, label=label) for _, label, color, marker, style in METHODS]
+                      markersize=4, label=label) for _, label, color, marker, style in methods]
     fig.legend(handles=handles, loc="lower center", bbox_to_anchor=(.52, .015),
-               ncol=4, frameon=False, handlelength=2.3, columnspacing=1.8)
+               ncol=len(methods), frameon=False, handlelength=2.3, columnspacing=1.8)
     fig.subplots_adjust(left=.075, right=.995, bottom=.36, top=.85, wspace=.16, hspace=.39)
     for extension in ("pdf", "png"):
-        fig.savefig(output / f"simulation_cate_hierarchical.{extension}",
+        fig.savefig(output / f"simulation_cate_hierarchical{suffix}.{extension}",
                     bbox_inches="tight", pad_inches=.04, dpi=220)
     plt.close(fig)
 
@@ -291,7 +306,9 @@ def write_report(summary: pd.DataFrame, null: pd.DataFrame, output: Path, *,
     complete = bool(summary.complete.all())
     lines = ["# CATE simulation", "", "Status: **" + ("complete" if complete else "INCOMPLETE") + "**.", "",
              "One hierarchical-signal experiment uses n = 400, p = 20, 300 planned replications per amplitude, "
-             "nominal level 0.05, and 200 centered Gaussian multiplier draws. Yan uses its normal calibration.", "",
+             "nominal level 0.05, and 200 centered Gaussian multiplier draws. Yan uses its normal calibration. "
+             "CF-NORD uses two balanced folds drawn independently of the data, fits nuisance functions on the other fold, "
+             "and pools the held-out scores for the test.", "",
              "The observed response is Y = b_N(X) + D a f_N(X) + (1 + 0.5 D) ε. "
              "The signal and its reference-sample normalization are unchanged from the existing hierarchical setting. "
              "The CATE is a f_N(X), and its population average is zero at every amplitude. At the null, "
@@ -299,7 +316,7 @@ def write_report(summary: pd.DataFrame, null: pd.DataFrame, output: Path, *,
              f"Completed cells: {int(summary.complete.sum())}/{len(summary)}; "
              f"valid test results: {int(summary.n_valid.sum()):,}/{len(summary)*REPLICATIONS:,}; "
              f"failed results: {int(summary.n_failed.sum()):,}; missing results: {int(summary.n_missing.sum()):,}.", "",
-             "The 156 distinct amplitude–test–learner cells comprise 12 amplitudes times 13 combinations. "
+             "The 204 distinct amplitude–test–learner cells comprise 12 amplitudes times 17 combinations. "
              "The oracle is computed once per dataset and repeated in the four panels; these repetitions "
              "are not additional replications or additional size tests.", "", "## Null rejection rates", "",
              "Intervals are pointwise 95% Clopper–Pearson binomial intervals, conditional on successful runs. "
@@ -318,12 +335,14 @@ def write_report(summary: pd.DataFrame, null: pd.DataFrame, output: Path, *,
               "The four learner panels show rejection-rate curves. Pointwise 95% exact binomial intervals "
               "are available in `rejection_summary.csv` and the null table above.", "",
               "`rejection_summary.csv` contains every planned cell, including missing cells. "
-              "`paired_differences.csv` reports NORD minus single-split rejection rates using only matched successful "
-              "replications, with pointwise normal Monte Carlo intervals based on the sample variance of paired "
+              "`paired_differences.csv` reports NORD minus single-split rejection rates, and "
+              "`paired_crossfit_differences.csv` reports NORD minus CF-NORD rejection rates. "
+              "Both use only matched successful replications, with pointwise normal Monte Carlo intervals "
+              "based on the sample variance of paired "
               "rejection differences. These intervals describe Monte Carlo uncertainty and are not adjusted "
               "for comparisons over amplitudes or learners.", ""]
     if figure_output is not None:
-        image = Path(os.path.relpath(figure_output / "simulation_cate_hierarchical.png", output))
+        image = Path(os.path.relpath(figure_output / "simulation_cate_hierarchical_crossfit.png", output))
         lines += [f"![CATE rejection curves]({image.as_posix()})", ""]
     else:
         lines += ["Figures were not generated (`--skip-plots`).", ""]
@@ -353,6 +372,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     atomic_write_csv(args.output / "rejection_summary.csv", summary)
     atomic_write_csv(args.output / "null_size.csv", null)
     atomic_write_csv(args.output / "paired_differences.csv", paired)
+    atomic_write_csv(args.output / "paired_crossfit_differences.csv", paired_crossfit_differences(raw))
     failed = raw[raw.status.eq("failed")]
     atomic_write_csv(args.output / "failed_results.csv", failed)
     atomic_write_json(args.output / "report_manifest.json", {
@@ -360,7 +380,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         "expected_cells": len(summary), "completed_cells": int(summary.complete.sum()),
         "expected_test_results": len(summary)*REPLICATIONS, "valid_test_results": int(summary.n_valid.sum()),
         "failed_test_results": int(summary.n_failed.sum()), "missing_test_results": int(summary.n_missing.sum()),
-        "size_family": "cate_13_cells", "size_flags": int(null.size_screen.eq("flagged").sum()),
+        "size_family": "cate_17_cells", "size_flags": int(null.size_screen.eq("flagged").sum()),
         "oracle_counted_once": True, "all_planned_curves_retained": True,
         "combined_raw_results": {"path": combined_path.name, "sha256": file_hash(combined_path),
                                  "bytes": combined_path.stat().st_size, "compression": "gzip; mtime=0"},
@@ -370,6 +390,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         figure_output = args.figure_output or args.output
         figure_output.mkdir(parents=True, exist_ok=True)
         plot_power(summary, null, figure_output)
+        plot_power(summary, null, figure_output, include_crossfit=True)
     write_report(summary, null, args.output,
                  figure_output=(args.figure_output or args.output) if not args.skip_plots else None)
     print(f"{'Complete' if summary.complete.all() else 'INCOMPLETE'} CATE report: {args.output}")
