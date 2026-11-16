@@ -30,19 +30,20 @@ python reproduce_figures.py
 The command verifies the archived table checksums and writes the 16 figure PDFs,
 summary tables, and an output manifest to `results/figures/jrssb/`.
 Use `--output PATH` to change the destination. It requires no model fitting or
-corpus download. The figure filenames match `main.tex` and `supplement.tex`.
+corpus download. The table below locates each result in the paper; figure and
+section numbers prefixed with S refer to the supplement.
 
-| Experiment | Figure files |
+| Experiment | Location in the paper |
 | --- | --- |
-| Main regression comparison | `simulation_null_size_boxplot_no_points.pdf`, `simulation_hierarchical_v9.pdf` |
-| Supplementary random-forest comparisons with PCM | `simulation_{additive,product,composition,hierarchical}_pcm_rf.pdf` |
-| Interpolation | `simulation_crossfit_interpolation_v9.pdf` |
-| Spline NORD versus CF-NORD | `simulation_crossfit_spline_null_revisit.pdf`, `simulation_crossfit_spline_power_models.pdf` |
-| CATE and conditional LATE | `simulation_{cate,late}_hierarchical.pdf` |
-| CaSiNo comparisons | `casino_baseline_cate.pdf`, `casino_baseline_max_satisfaction.pdf`, `casino_results_v9.pdf`, `casino_results_max_satisfaction.pdf` |
-| Opening-word contrasts | `casino_word_contrasts_v5.pdf` |
+| Main regression comparison | Figures 1–2, Section 5.2 |
+| Random-forest comparisons with PCM | Figures S4–S7, Section S5.2 |
+| Interpolation | Figure S1, Section S4.4 |
+| Spline NORD versus CF-NORD | Figures S2–S3, Section S4.5 |
+| CATE and conditional LATE | Figure 3, Section 5.3; Figure 4, Section 5.4 |
+| CaSiNo comparisons | Figure 5, Section 6 |
+| Opening-word contrasts | Figure S8, Section S6.2.3 |
 
-The CaSiNo figure combines four source assets in LaTeX.
+Figure 5 combines four source assets, one for each row (i)–(iv).
 [results/README.md](results/README.md) describes the supplied tables and provenance.
 All reported rejection curves are retained, including procedures with elevated
 null rejection rates. PCM's null rates prevent comparison at a common type-I error.
