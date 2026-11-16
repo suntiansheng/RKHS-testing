@@ -18,6 +18,7 @@ import pandas as pd
 from scipy.stats import binom, binomtest, norm
 
 from io_utils import atomic_write_csv, atomic_write_json, file_hash
+from pcm import PCM_LEARNER, PCM_METHODS
 
 plt.rcParams["pdf.fonttype"] = 42
 plt.rcParams["ps.fonttype"] = 42
@@ -30,7 +31,7 @@ METHOD_ORDER = [
     "residual",
     "yan",
     "oracle_score",
-]
+] + list(PCM_METHODS)
 METHOD_LABELS = {
     "orthogonal_nosplit": "NORD",
     "orthogonal_single_split": "Single split",
@@ -38,6 +39,8 @@ METHOD_LABELS = {
     "residual": "Residual",
     "yan": "Yan",
     "oracle_score": "Oracle",
+    "pcm_single_split": "PCM (one split)",
+    "pcm_derandomized": "PCM (six splits)",
 }
 METHOD_COLORS = {
     "orthogonal_nosplit": "#1B9E77",
@@ -46,6 +49,8 @@ METHOD_COLORS = {
     "residual": "#D95F02",
     "yan": "#1F78B4",
     "oracle_score": "#4D4D4D",
+    "pcm_single_split": "#A6761D",
+    "pcm_derandomized": "#E6AB02",
 }
 DESIGN_LABELS = {
     "pooled_random_shift": "pooled i.i.d. random-count covariate shift",
@@ -54,6 +59,7 @@ MAIN_HOLM_FAMILY = "main_170_cells"
 MAIN_METHODS = {"orthogonal_nosplit", "orthogonal_crossfit", "residual", "yan"}
 SINGLE_SPLIT_METHOD = "orthogonal_single_split"
 SINGLE_SPLIT_HOLM_FAMILY = "single_split_40_cells"
+PCM_HOLM_FAMILY = "original_pcm_20_cells"
 PRODUCTION_LEARNERS = {"gam", "rf", "lasso", "dnn"}
 PRODUCTION_SCENARIOS = {
     "additive",
@@ -212,7 +218,7 @@ def size_audit(
 
 
 def size_family(summary: pd.DataFrame, *, single_split: bool) -> tuple[str, bool]:
-    """Identify complete original null families for archived diagnostics."""
+    """Identify complete main and single-split null families."""
     null = summary[np.isclose(summary["delta"], 0.0)]
     pairs = (
         {(learner, SINGLE_SPLIT_METHOD) for learner in PRODUCTION_LEARNERS}
@@ -245,22 +251,44 @@ def size_family(summary: pd.DataFrame, *, single_split: bool) -> tuple[str, bool
 
 
 def assess_size_families(summary: pd.DataFrame) -> tuple[pd.DataFrame, dict[str, bool]]:
-    """Keep the 170 main and 40 single-split null hypotheses in separate families."""
+    """Audit the main, single-split, and PCM null families separately."""
     audits = []
     complete = {}
-    split_rows = summary["method"] == SINGLE_SPLIT_METHOD
+    pcm_rows = summary["method"].isin(PCM_METHODS)
+    historical = summary[~pcm_rows]
+    split_rows = historical["method"] == SINGLE_SPLIT_METHOD
     for single_split in (False, True):
-        selected = summary[split_rows == single_split]
+        selected = historical[split_rows == single_split]
         if selected.empty:
             continue
         family, is_complete = size_family(selected, single_split=single_split)
-        complete[family] = is_complete
+        complete[family] = bool(is_complete)
+        audits.append(size_audit(selected, family=family))
+    if pcm_rows.any():
+        selected = summary[pcm_rows]
+        null = selected[np.isclose(selected["delta"], 0.0)]
+        expected = {
+            ("pooled_random_shift", scenario, p, PCM_LEARNER, method)
+            for scenario in PRODUCTION_SCENARIOS
+            for p in (20, 50)
+            for method in PCM_METHODS
+        }
+        keys = ["design", "scenario", "p", "learner", "method"]
+        is_complete = (
+            len(null) == len(expected)
+            and set(null[keys].itertuples(index=False, name=None)) == expected
+            and (null["n_valid"] == 300).all()
+            and (null["n_failed"] == 0).all()
+            and np.isclose(null["alpha"], 0.05).all()
+        )
+        family = PCM_HOLM_FAMILY if is_complete else f"nonproduction_pcm_{len(null)}_null_cells"
+        complete[family] = bool(is_complete)
         audits.append(size_audit(selected, family=family))
     return pd.concat(audits, ignore_index=True), complete
 
 
 def attach_size_gate(summary: pd.DataFrame, sizes: pd.DataFrame) -> pd.DataFrame:
-    """Attach the null-size disposition to every point on a power curve."""
+    """Attach each curve's null-size audit to its power estimates."""
 
     keys = ["design", "scenario", "p", "learner", "method"]
     gate = sizes[
@@ -427,7 +455,9 @@ def _make_plot_set(
         normal = normal[normal["delta"] <= max_delta + 1e-12]
     group_keys = ["design", "scenario", "p"]
     for (design, scenario, p), setting in normal.groupby(group_keys, sort=True):
-        learners = sorted(setting["learner"].unique())
+        learners = sorted(set(setting["learner"]) - {PCM_LEARNER})
+        if not learners and (setting["learner"] == PCM_LEARNER).any():
+            learners = [PCM_LEARNER]
         if not learners:
             continue
         columns = min(2, len(learners))
@@ -447,6 +477,11 @@ def _make_plot_set(
             if max_delta is not None:
                 oracle = oracle[oracle["delta"] <= max_delta + 1e-12]
             learner_frame = pd.concat([learner_frame, oracle], ignore_index=True)
+            if learner != PCM_LEARNER:
+                learner_frame = pd.concat(
+                    [learner_frame, setting[setting["learner"] == PCM_LEARNER]],
+                    ignore_index=True,
+                )
             for method in METHOD_ORDER:
                 curve = learner_frame[learner_frame["method"] == method].sort_values(
                     "delta"
@@ -468,10 +503,10 @@ def _make_plot_set(
                 )
             alpha = float(learner_frame["alpha"].iloc[0])
             axis.axhline(alpha, color="#777777", linestyle="--", linewidth=1)
-            axis.set_title(learner.upper())
+            axis.set_title("Original PCM (Ranger)" if learner == PCM_LEARNER else learner.upper())
             axis.set_ylim(0.0, 1.02)
             axis.grid(alpha=0.2)
-            axis.set_xlabel(r"Signal $\Delta$")
+            axis.set_xlabel(r"Signal amplitude $a$")
             axis.set_ylabel("Rejection rate")
         for axis in axes.flat[len(learners) :]:
             axis.set_visible(False)

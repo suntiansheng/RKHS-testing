@@ -310,7 +310,7 @@ def write_report(summary: pd.DataFrame, null: pd.DataFrame, output: Path, *,
              "CF-NORD uses two balanced folds drawn independently of the data, fits nuisance functions on the other fold, "
              "and pools the held-out scores for the test.", "",
              "The observed response is Y = b_N(X) + D a f_N(X) + (1 + 0.5 D) ε. "
-             "The signal and its reference-sample normalization are unchanged from the existing hierarchical setting. "
+             "The signal and reference-sample normalization match the hierarchical regression experiment. "
              "The CATE is a f_N(X), and its population average is zero at every amplitude. At the null, "
              "conditional outcome variances differ between the two treatment arms.", "",
              f"Completed cells: {int(summary.complete.sum())}/{len(summary)}; "
@@ -330,7 +330,7 @@ def write_report(summary: pd.DataFrame, null: pd.DataFrame, output: Path, *,
     if not null.family_complete.all():
         lines += ["The null results are incomplete; the table records the available replications.", ""]
     lines += ["## Power and paired comparisons", "",
-              "The figure retains numeric amplitude positions, matching the existing manuscript figures; "
+              "The figure uses numeric amplitude positions; "
               "the full grid is 0, 0.1, 0.2, 0.3, 0.5, 0.8, 1.2, 1.6, 2.5, 4, 6, 20. "
               "The four learner panels show rejection-rate curves. Pointwise 95% exact binomial intervals "
               "are available in `rejection_summary.csv` and the null table above.", "",

@@ -1,8 +1,7 @@
-"""Resumable four-learner full-sample/cross-fit experiment.
+"""Compare full-sample and cross-fitted tests with four outcome learners.
 
-Uses the archived data-generating functions and nuisance learners, independent
-outer folds, a fixed kernel, and independent prediction-error diagnostics.
-Run from the repository root. Process workers each use one numerical thread.
+Outer folds are independent of the observations. The Gaussian kernel is fixed,
+and nuisance prediction errors use an independent reference sample.
 """
 
 from __future__ import annotations
@@ -51,7 +50,7 @@ def independent_folds(n, k, seed):
 
 
 def score_test(scores, kernel, multipliers, level):
-    """Squared-norm implementation of the existing centered multiplier test."""
+    """Centered multiplier test computed from squared RKHS norms."""
     n = len(scores)
     observed_squared = max(float(scores @ kernel @ scores / n), 0.)
     weighted = scores[:, None] * multipliers
@@ -141,7 +140,7 @@ def run_task(task):
         fold = independent_folds(n, k, core.stable_seed(seed, n, rep, "folds", k))
         partitions[f"cf{k}"] = [(np.flatnonzero(fold != j), np.flatnonzero(fold == j)) for j in range(k)]
 
-    # These propensity fits do not depend on outcome learner or amplitude.
+    # Reuse propensity fits across outcome learners and amplitudes.
     ehat, emse, eseconds = {}, {}, {}
     for role, splits in partitions.items():
         ehat[role], emse[role] = np.empty(n), 0.
@@ -373,7 +372,6 @@ def main():
     else:
         atomic_write_json(output/"config.json",metadata)
     completed=read_completed(output,config,fingerprint)
-    # Replication-first ordering gives complete curves for all sample sizes early.
     tasks=[(n,rep) for rep in range(max(args.null_replications,args.power_replications))
            for n in config["sample_sizes"] if (n,rep) not in completed]
     if args.max_tasks is not None:

@@ -1,4 +1,4 @@
-"""Run the CATE experiment in independently resumable simulation shards."""
+"""Run the CATE experiment in resumable simulation shards."""
 
 from __future__ import annotations
 

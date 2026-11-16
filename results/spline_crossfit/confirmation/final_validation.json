@@ -1,0 +1,51 @@
+{
+  "complete": true,
+  "completed_tasks": 10000,
+  "expected_tasks": 10000,
+  "failures": 0,
+  "rows": 324000,
+  "all_n_scores_used": true,
+  "duplicate_rows": 0,
+  "null_cells": 12,
+  "flagged_null_cells": 5,
+  "primary_cells": 12,
+  "primary_positive_lower_bounds": 11,
+  "raw_rows_reverified": 324000,
+  "pilot_and_confirmation_seeds_disjoint": true,
+  "all_source_datasets_unique": true,
+  "primary_amplitudes": [
+    2.0,
+    2.5,
+    3.2
+  ],
+  "all_primary_point_estimates_positive": true,
+  "all_primary_simultaneous_lower_bounds_positive": false,
+  "primary_gap_minimum": 0.0273333333333333,
+  "primary_gap_maximum": 0.1186666666666666,
+  "original_null_rate_ranges": {
+    "cf2": [
+      0.0508,
+      0.0688
+    ],
+    "cf5": [
+      0.0594,
+      0.0676
+    ],
+    "full": [
+      0.0526,
+      0.059
+    ],
+    "oracle": [
+      0.0516,
+      0.0534
+    ]
+  },
+  "files_sha256": {
+    "raw_results.csv.gz": "894679950ac809013f84729e50828d8396adb98b2f5f0b7be068bedfe9016a4b",
+    "summary.csv": "29c60035d96cdbcab2e8106c8b9e730a52edc93d03832f721e43c7f837427876",
+    "paired_differences.csv": "3abb00dfd88a54618e75252891717d87a061f6518056ae82e96a8caee165cebe",
+    "null_size.csv": "ce47b5a477f175f70a6690f65c8a060e212a6f9dd979ccfec54b424e09027ed6",
+    "primary_comparisons.csv": "6a25ea450bad90c4a2bf281cbb3a4c54891ea86eeeed1d66661c0d60d7295a50",
+    "independent_null_diagnostic.csv": "08541340fd3c3492d6629a0567c0b3011bf39b1e43fcdc848eefdd4f99b79ebb"
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "repository": "https://github.com/ARLundborg/pcm_code",
+  "commit": "3822659390510d65c36857f8801c893e94850774",
+  "paper": "https://arxiv.org/abs/2211.02039",
+  "files": {
+    "test_functions.R": "7696d75dae0bc006bd3a943774d3e50558bfcbfba522242b6eb5d99e15249a4e",
+    "sim_ranger_comparison.R": "d20f3e602bdf409213d9b052b8751cd3313e00331cb1dc3c16e6f3fc2904fcc3",
+    "README.md": "6a024c299f4d9013b09b1fb728a536be160f13fffd7f520edc87963302785de7"
+  }
+}

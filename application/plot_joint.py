@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Four matched regression-test figures in the manuscript's existing style."""
+"""Plot CaSiNo comparisons with baseline and text covariates."""
 
 import argparse
 import json

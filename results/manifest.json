@@ -1,7 +1,7 @@
 {
-  "description": "Compact result tables and provenance for all final JRSSB manuscript figures.",
+  "description": "Compact simulation and application tables used in main.tex and supplement.tex.",
   "sha256": {
-    "README.md": "4befd0bb15da7bc0f86ce5b5fc70c18011894af5e5ab439f841ef4717296eea7",
+    "README.md": "58f295ee9602fec04a59ab8e7034cb551754df509ff0d50c039d2b22e088f1df",
     "casino/analysis_plan.json": "8b6588d49aa65f665afd0b83423a1b411810666071028cbd80230e72f26e1244",
     "casino/analysis_summary.json": "0b5c3bf47657dbbdcc0390280bb456f839be853fd792613e6006bbdc562ee322",
     "casino/regression_tests.csv": "6bc036ca73da5e9225e87dc70b914775d272871d1e525cab05e52ab549a6a800",
@@ -40,25 +40,27 @@
     "late_hierarchical/rejection_summary.csv": "bb91c3d816d9b9a3032ac05822076a4daea67fdf8eb3c8b1b5557a839701c45d",
     "late_hierarchical/report_manifest.json": "be41dfafba3276afbc177ad5119218c9af81c225f31a66be3189e5f1f6ca9304",
     "late_hierarchical/validation.json": "a539c59734ce75343691fe5765ac5855b902b292706e494bcf47cde211f2b281",
-    "single_split_summary.csv": "eecd26e3ffe3b5a94a1b540fa941531fbe455d1ef49c2557d2bff713dfa46254"
-  },
-  "manuscript_figure_sha256": {
-    "casino_baseline_cate.pdf": "2cc7135b95cebf28c89cd69ab5e6ec210ef8f0ff78f0c4a35204913b2cfbbd11",
-    "casino_baseline_max_satisfaction.pdf": "4d0248bf7cc6d0fb25e96c3c67499776f6aa63e0076c463a9123479ccfd37ee3",
-    "casino_results_max_satisfaction.pdf": "a9a8033baca571846d0dc16e4b5e58d6acad1c8bf6b27946b0256f037b68a9c7",
-    "casino_results_v9.pdf": "6cbb9d02148cd7dd905b6708c719a3d292b2d9bd113fd1a55a630d2271ddc870",
-    "casino_word_contrasts_v5.pdf": "2e0814211d72b3159d71706363db22a0a7717098aef174ad8f143658e35a42d1",
-    "simulation_additive_compact_v9.pdf": "5a7f98400c5a76730b54ad8d9f8ec0d9c04d53558e3819111f9193abf9e76d27",
-    "simulation_cate_hierarchical.pdf": "9707e9b5bd54e6f208e498866cc6b6ccb035b867de813a1cce07304c7bb691d9",
-    "simulation_cate_hierarchical_crossfit.pdf": "66372f85a8a700356c427863e1f5593a8ae3ef05bbb6eb9794ea1164dd5f13e8",
-    "simulation_composition_compact_v9.pdf": "d5439e4acc0590da40593ce43f0c0402886c8d33f847b33bf2888f1c52ff8bf4",
-    "simulation_crossfit_additive_null_size.pdf": "4381967beff15d06fee82fdd2bbdfd43a1f8af4277ecfe62d2a8292255bdb9af",
-    "simulation_crossfit_additive_power_ratio.pdf": "a46791475bd8b46ccce8659b3b2b8fe1b4b29f5038f3e1fbffb5256693478d47",
-    "simulation_crossfit_interpolation_v9.pdf": "10bc85acf34cd7d7ec16f44660271d9fcd5b0449cea16529e4afe2fd6fb40813",
-    "simulation_hierarchical_v9.pdf": "441fee2329138614d362498794bc5b92e7fba3aef57865c8e6947eb77b434459",
-    "simulation_late_hierarchical.pdf": "77ab9a1e766968a8bd66b29240cc7e805a948f60a0faf72268936a36d2e8bfe1",
-    "simulation_late_hierarchical_crossfit.pdf": "623edc42ca3749abf69b325312bc67a0e8b0bece98a4789674e299bb1f4acc80",
-    "simulation_product_compact_v9.pdf": "28fac8c3385a3fd11b110b03929b4a9469336ba80571791c9bd5f0e29098c508"
-  },
-  "figure_comparison": "PDF file hashes identify the submitted assets. Re-rendered pixels match under requirements-reproduce.txt; PDF metadata may differ."
+    "pcm_provenance.json": "3fb61034a847e244a88dfe47974613cc3125fc7aea7419ff71c30c3b228fbf6e",
+    "pcm_summary.csv": "45361a5f040803f47e947ff34277746ad82bba4183d6044b03ba5d8c58740c7c",
+    "single_split_summary.csv": "eecd26e3ffe3b5a94a1b540fa941531fbe455d1ef49c2557d2bff713dfa46254",
+    "spline_crossfit/confirmation/config.json": "75096c5f44cd17aad7fa9f9d2688b648650ddc227087af71c43d5b911148256f",
+    "spline_crossfit/confirmation/final_validation.json": "9011769c3aa2464d3e5f77117c0b34cfa38ab6aef56a79bb02df6fb0e59da396",
+    "spline_crossfit/confirmation/independent_null_diagnostic.csv": "08541340fd3c3492d6629a0567c0b3011bf39b1e43fcdc848eefdd4f99b79ebb",
+    "spline_crossfit/confirmation/metadata.json": "fdc976e5f743bd4ec197d4a564ad3a98bb8a1166224001cf2100aa33ad36565f",
+    "spline_crossfit/confirmation/nuisance_prediction_comparison.csv": "926aa5c8243ffe7952430f63ba26c15bae588003bf1527e4f435c1a9cc8e0d3f",
+    "spline_crossfit/confirmation/null_size.csv": "ce47b5a477f175f70a6690f65c8a060e212a6f9dd979ccfec54b424e09027ed6",
+    "spline_crossfit/confirmation/paired_differences.csv": "3abb00dfd88a54618e75252891717d87a061f6518056ae82e96a8caee165cebe",
+    "spline_crossfit/confirmation/primary_comparisons.csv": "6a25ea450bad90c4a2bf281cbb3a4c54891ea86eeeed1d66661c0d60d7295a50",
+    "spline_crossfit/confirmation/summary.csv": "29c60035d96cdbcab2e8106c8b9e730a52edc93d03832f721e43c7f837427876",
+    "spline_crossfit/confirmation/validation.json": "d1142672a35b0177d94524bc1a3b7a36215dac7d649bf8ca0fc878860e251013",
+    "spline_crossfit/confirmation_protocol.json": "3d04cd9133c8567e8806996d297d8357edbdd04f368e93b049790438f7e1fc3b",
+    "spline_crossfit/pilot/config.json": "fb45433e0671327dfdb2013456bed150ab3e1003d39bcc727751af463213fe4a",
+    "spline_crossfit/pilot/metadata.json": "7a8aec431d66be7b8c844ae9c167b370c461fd1be229e171ce3fba3c987533ff",
+    "spline_crossfit/pilot/null_size.csv": "93455efb429c9e7880cc1a8b4ffc26c089694f54b4c5baad8ff73cd5c1c2cb94",
+    "spline_crossfit/pilot/paired_differences.csv": "03c0643db2b9e0fecbad6f6d14b454dfd55782bf14f559d2b538fef08af389ca",
+    "spline_crossfit/pilot/summary.csv": "29e00017576a1fafffd2b3cf6a34b5bac9a194878b331ed3969859398783fc4a",
+    "spline_crossfit/pilot/validation.json": "cb67bbe09d9085d7a1d034f414c7b64b3a5816280f78a4771d52a180164b04bc",
+    "spline_crossfit/selection_decision.json": "0532f5952915c6a130d08ec423ac565ae5a1f4f33e5c75b9a8b71d31335190cb",
+    "spline_crossfit/source_provenance.json": "ea2ef0d6a49d8b905543aeb6433c1ef7c57bc73f125a6ea025fa30d45dffb43d"
+  }
 }

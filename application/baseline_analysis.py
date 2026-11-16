@@ -1,11 +1,5 @@
 #!/usr/bin/env python3
-"""Exploratory CaSiNo comparisons using only pretreatment survey covariates.
-
-This companion preserves the original sample and separates regression tests
-from descriptive standardized mean contrasts. It does not assert that corpus
-filtering preserves randomization or that rejecting zero effects proves
-heterogeneity. All specifications are retained, regardless of their results.
-"""
+"""CaSiNo regression tests and standardized contrasts using baseline covariates."""
 
 from __future__ import annotations
 
@@ -94,7 +88,7 @@ def baseline_design(sample, speakers, *, include_age=True):
 
 
 def selection_before_restriction(records):
-    """Use the original identifier order across all three preference regimes."""
+    """Select disjoint dialogues before restricting to the two extreme groups."""
     def key(row):
         value = f"{analyze.MAIN_SELECTION_SALT}|{row['dialogue_id']}".encode()
         return hashlib.sha256(value).hexdigest(), int(row["dialogue_id"])

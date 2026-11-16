@@ -3,13 +3,13 @@
 This experiment compares NORD with the scalar generalised covariance measure
 (GCM) of Shah and Peters (2020), equation (3). It uses the four main simulation
 structures, n=400, p=20 and 50, four outcome learners, twelve amplitudes, and
-300 replications per cell. GCM and NORD use exactly the same fitted residual
-products, without inverse-propensity weights.
+300 replications per cell. GCM and NORD use the same fitted residual products.
 
 GCM multiplies the residual-product mean by `sqrt(n)`, divides by its empirical
-standard deviation, and uses a two-sided standard-normal calibration. Saved standard deviations
-have denominator n-1; `simulation/gcm.py` converts them to denominator n for
-the test. A zero or nonfinite score variance is reported as an error.
+standard deviation, and uses a two-sided standard-normal calibration. Saved
+standard deviations use denominator `n-1`; `simulation/gcm.py` converts them to
+denominator `n` for the test. A zero or nonfinite score variance is reported
+as an error.
 NORD uses 200 centered Gaussian multiplier draws and a plus-one p-value.
 
 ## Included results
@@ -50,9 +50,8 @@ an existing run with `--summarize-only`.
 The full experiment has 1,200 checkpoints and 115,200 matched fitted-score
 records. The publisher requires the complete run, verifies source and result
 hashes, reconstructs GCM p-values from saved moments, checks rejection
-indicators and cell counts, and writes the `results/gcm_*.csv` tables. Large
-per-replication files and checkpoints are generated locally rather than stored
-in the source repository.
+indicators and cell counts, and writes the `results/gcm_*.csv` tables.
+Replication-level files and checkpoints are excluded from version control.
 
 ## Signal cancellation diagnostic
 
@@ -72,8 +71,8 @@ absolute signal mean, with weight e(X)(1-e(X)). It uses the 100,000 calibration
 covariates and their negatives, checks the reference signal scales, and fits
 no learners. The standard error treats antithetic pairs as independent units.
 The ratio is approximately 0.00045 and 0.00053 for the hierarchical signal at
-p=20 and 50, versus 0.80 and 0.93 for the pairwise-product signal. This describes
-population-moment cancellation; it is not a power calculation.
+p=20 and 50, versus 0.80 and 0.93 for the pairwise-product signal. This ratio
+measures population-moment cancellation.
 
 ## Tests
 

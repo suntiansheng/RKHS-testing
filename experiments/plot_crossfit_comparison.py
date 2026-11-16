@@ -1,4 +1,4 @@
-"""Plot the four-learner comparison using the archived manuscript style."""
+"""Plot full-sample and cross-fitted comparisons across four outcome learners."""
 
 import argparse
 import json

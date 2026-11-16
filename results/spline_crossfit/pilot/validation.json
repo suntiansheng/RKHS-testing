@@ -1,0 +1,13 @@
+{
+  "complete": true,
+  "completed_tasks": 300,
+  "expected_tasks": 300,
+  "failures": 0,
+  "rows": 33000,
+  "all_n_scores_used": true,
+  "duplicate_rows": 0,
+  "null_cells": 12,
+  "flagged_null_cells": 0,
+  "primary_cells": 40,
+  "primary_positive_lower_bounds": 0
+}

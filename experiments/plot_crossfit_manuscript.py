@@ -1,9 +1,4 @@
-"""Reproduce the two n=120,160 cross-fit figures used in the supplement.
-
-Read the completed extension, retain every learner and amplitude, and use its
-archived numerical validation. No simulation or nuisance fit is rerun. The
-figure inputs are included in the repository.
-"""
+"""Plot the earlier four-learner cross-fit comparisons at n=120 and n=160."""
 from __future__ import annotations
 
 import argparse
@@ -79,7 +74,6 @@ def load_results(run):
     np.testing.assert_allclose(se, differences.paired_mc_se, atol=1e-14)
     np.testing.assert_allclose(mean - norm.ppf(.975) * se, differences.ci_lower, atol=1e-14)
     np.testing.assert_allclose(mean + norm.ppf(.975) * se, differences.ci_upper, atol=1e-14)
-    # Validate the original screen; do not select panels according to power.
     pvalues = np.array([binomtest(int(row.rejections), int(row.replications), .05).pvalue
                        for row in null.itertuples()])
     order = np.argsort(pvalues)

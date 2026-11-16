@@ -21,6 +21,8 @@ from sklearn.metrics import log_loss, mean_squared_error, roc_auc_score
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import SplineTransformer, StandardScaler
 
+from pcm import PCM_LEARNER, PCM_METHODS
+
 
 SCHEMA_VERSION = "1"
 SUPPORTED_SCENARIOS = (
@@ -37,7 +39,7 @@ LATE_OPTIONS = {
     "latent_outcome_coefficient": 2.0,
     "noncomplier_treatment_effect": 1.0,
 }
-SUPPORTED_LEARNERS = ("gam", "rf", "lasso", "dnn", "oracle")
+SUPPORTED_LEARNERS = ("gam", "rf", "lasso", "dnn", "oracle", PCM_LEARNER)
 SUPPORTED_METHODS = (
     "orthogonal_nosplit",
     "orthogonal_single_split",
@@ -45,7 +47,15 @@ SUPPORTED_METHODS = (
     "residual",
     "yan",
     "oracle_score",
-)
+) + PCM_METHODS
+
+
+def methods_for_learner(learner: str) -> set[str]:
+    if learner == PCM_LEARNER:
+        return set(PCM_METHODS)
+    if learner == "oracle":
+        return {"oracle_score"}
+    return set(SUPPORTED_METHODS) - set(PCM_METHODS) - {"oracle_score"}
 
 
 def stable_seed(*parts: object) -> int:
@@ -1001,7 +1011,6 @@ def fit_regression(
     seed: int,
     learner_options: Mapping[str, Any],
 ) -> PredictionFit:
-    """Fit the requested nuisance learner."""
 
     started = time.perf_counter()
     if learner == "gam":
@@ -1358,6 +1367,62 @@ def run_replication(
         ),
         late_options=task.get("late_options", config.get("late_options")),
     )
+    if learner == PCM_LEARNER:
+        from pcm import run_original_pcm
+
+        pcm_methods = tuple(method for method in methods if method in PCM_METHODS)
+        if not pcm_methods:
+            return [], dat.diagnostics
+        started = time.perf_counter()
+        rows: list[dict[str, Any]] = []
+        try:
+            payload = run_original_pcm(
+                dat.y, dat.d, dat.X,
+                seed=stable_seed(task["fit_seed"], "original_pcm_R") % (2**31 - 1),
+                methods=pcm_methods,
+                options=config.get("pcm_options", {}),
+            )
+            for method in pcm_methods:
+                native = payload["methods"][method]
+                if native["status"] != "ok":
+                    row = _failure_row(
+                        task, learner, method, dat, RuntimeError(native["error"]),
+                        native["runtime_seconds"],
+                    )
+                    row["diagnostics_json"] = compact_json(payload["diagnostics"])
+                else:
+                    result = TestResult(
+                        reject=int(native["statistic"] > norm.ppf(1.0 - float(task["alpha"]))),
+                        p_value=float(native["p_value"]),
+                        statistic=float(native["statistic"]),
+                        critical_value=float(norm.ppf(1.0 - float(task["alpha"]))),
+                        diagnostics={
+                            "calibration": "one-sided standard normal",
+                            "aggregation": "first split" if method == PCM_METHODS[0]
+                            else "mean of six statistics",
+                        },
+                    )
+                    row = _successful_row(
+                        task, learner, method, dat, result,
+                        runtime_seconds=native["runtime_seconds"], bandwidth=None,
+                        score=None, diagnostics=payload["diagnostics"],
+                    )
+                    row["score_n"] = native["n_testing"]
+                    if method == "pcm_single_split":
+                        row["score_mean"] = native["score_mean"]
+                        row["score_sd"] = native["score_sd"]
+                row["bootstrap_draws"] = 0
+                rows.append(row)
+        except Exception as error:
+            rows = []
+            for method in pcm_methods:
+                row = _failure_row(
+                    task, learner, method, dat, error, time.perf_counter() - started,
+                )
+                row["bootstrap_draws"] = 0
+                rows.append(row)
+        return rows, dat.diagnostics
+
     pooled_kernel_methods = {
         "orthogonal_nosplit",
         "orthogonal_crossfit",

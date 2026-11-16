@@ -1,0 +1,20 @@
+{
+  "name": "pooled_random_shift_original_pcm",
+  "seed_base": 8012026,
+  "designs": ["pooled_random_shift"],
+  "scenarios": ["additive", "product", "composition", "friedman", "neural_composition"],
+  "dimensions": [20, 50],
+  "deltas": [0.0, 0.1, 0.2, 0.3, 0.5, 0.8, 1.2, 1.6, 2.5, 4.0, 6.0, 20.0],
+  "replications": 300,
+  "workers": 6,
+  "n": 400,
+  "target_pi": 0.5,
+  "rho": 0.5,
+  "sigma": 1.0,
+  "alpha": 0.05,
+  "bootstrap_draws": 200,
+  "learners": ["pcm_ranger"],
+  "methods": ["pcm_single_split", "pcm_derandomized"],
+  "propensity_mode": "estimated",
+  "calibration_n": 100000
+}

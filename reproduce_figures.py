@@ -8,7 +8,7 @@ from pathlib import Path
 import pandas as pd
 
 import plot_results
-from experiments import cate_report, late_report, plot_crossfit_manuscript
+from experiments import cate_report, late_report, spline_crossfit_plot
 from application import plot as application_plot
 from application import plot_joint
 
@@ -17,15 +17,14 @@ ROOT = Path(__file__).resolve().parent
 RESULTS = ROOT / "results"
 MANUSCRIPT_NAMES = {
     "simulation_hierarchical": "simulation_hierarchical_v9",
-    "simulation_additive_compact": "simulation_additive_compact_v9",
-    "simulation_product_compact": "simulation_product_compact_v9",
-    "simulation_composition_compact": "simulation_composition_compact_v9",
     "simulation_crossfit_interpolation": "simulation_crossfit_interpolation_v9",
 }
-CAUSAL_NAMES = ("simulation_cate_hierarchical", "simulation_late_hierarchical",
-                "simulation_cate_hierarchical_crossfit", "simulation_late_hierarchical_crossfit")
+CAUSAL_NAMES = ("simulation_cate_hierarchical", "simulation_late_hierarchical")
+PCM_NAMES = tuple(f"simulation_{name}_pcm_rf"
+                  for name in ("additive", "product", "composition", "hierarchical"))
 WORD_NAME = "casino_word_contrasts_v5"
-FIGURE_NAMES = (tuple(MANUSCRIPT_NAMES.values()) + tuple(plot_crossfit_manuscript.STEMS)
+FIGURE_NAMES = (tuple(MANUSCRIPT_NAMES.values()) + tuple(spline_crossfit_plot.STEMS)
+                + ("simulation_null_size_boxplot_no_points",) + PCM_NAMES
                 + CAUSAL_NAMES + tuple(plot_joint.FIGURES.values()) + (WORD_NAME,))
 
 
@@ -50,12 +49,10 @@ def main(argv=None):
     output = args.output.resolve()
     output.mkdir(parents=True, exist_ok=True)
 
-    plot_results.main(["--output", str(output)])
+    plot_results.main(["--output", str(output), "--manuscript-only"])
     for old, new in MANUSCRIPT_NAMES.items():
         (output / f"{old}.pdf").replace(output / f"{new}.pdf")
-    plot_crossfit_manuscript.build(
-        RESULTS / "crossfit_comparison/n120_n160_k2", output
-    )
+    spline_crossfit_plot.build(RESULTS / "spline_crossfit/confirmation", output)
     for name, report_module in (("cate", cate_report), ("late", late_report)):
         directory = RESULTS / f"{name}_hierarchical"
         summary = pd.read_csv(directory / "rejection_summary.csv")
@@ -64,13 +61,12 @@ def main(argv=None):
             raise ValueError(f"Incomplete {name.upper()} result archive")
         null = pd.read_csv(directory / "null_size.csv")
         report_module.plot_power(summary, null, output)
-        report_module.plot_power(summary, null, output, include_crossfit=True)
     plot_joint.create_figures(RESULTS / "casino", output)
     application_plot.configure_style()
     words = pd.read_csv(RESULTS / "casino/word_log_odds.csv")
     application_plot.save_figure(application_plot.make_manuscript_word_figure(words), output, WORD_NAME)
     report = {
-        "manuscript": "JRSSB submission: main.tex and supplement.tex",
+        "manuscript": "main.tex and supplement.tex",
         "input_sha256": sources,
         "output_sha256": {f"{name}.pdf": sha256(output / f"{name}.pdf") for name in FIGURE_NAMES},
         "interpolation_bootstrap_draws": 199,

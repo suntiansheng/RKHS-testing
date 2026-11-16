@@ -18,6 +18,7 @@ import pandas as pd
 import torch
 
 from io_utils import atomic_write_csv, atomic_write_json, file_hash
+from pcm import PCM_LEARNER, PCM_METHODS, pcm_runtime_metadata
 from simcore import (
     SCHEMA_VERSION,
     SUPPORTED_DESIGNS,
@@ -26,6 +27,7 @@ from simcore import (
     SUPPORTED_SCENARIOS,
     ScenarioCalibration,
     calibrate_scenarios,
+    methods_for_learner,
     package_versions,
     run_replication,
     stable_seed,
@@ -99,6 +101,9 @@ def validate_config(config: Mapping[str, Any]) -> None:
         raise ValueError("The pooled random-shift design requires target_pi=0.5.")
     if int(config["replications"]) < 1 or int(config["bootstrap_draws"]) < 1:
         raise ValueError("replications and bootstrap_draws must be positive.")
+    configured_workers = config.get("workers", 1)
+    if isinstance(configured_workers, bool) or not isinstance(configured_workers, int) or configured_workers < 1:
+        raise ValueError("Configured workers must be a positive integer.")
     if not 0.0 < float(config["alpha"]) < 1.0:
         raise ValueError("alpha must lie in (0,1).")
     propensity_mode = config.get("propensity_mode", "estimated")
@@ -121,6 +126,19 @@ def validate_config(config: Mapping[str, Any]) -> None:
                 or validate_treatment_noise_scales(config.get("treatment_noise_scales", []))
                 != (1.0, 1.5)):
             raise ValueError("late_iv requires sigma=1 and treatment_noise_scales=[1,1.5].")
+    for learner in config["learners"]:
+        if not methods_for_learner(learner).intersection(config["methods"]):
+            raise ValueError(f"No requested method is compatible with learner {learner}.")
+    if set(PCM_METHODS).intersection(config["methods"]):
+        if PCM_LEARNER not in config["learners"]:
+            raise ValueError("Original PCM methods require the pcm_ranger learner.")
+        if int(config["n"]) % 2:
+            raise ValueError("Original PCM requires an even total sample size.")
+        unknown_pcm_options = set(config.get("pcm_options", {})) - {"rscript", "timeout_seconds"}
+        if unknown_pcm_options:
+            raise ValueError("PCM fitting and calibration settings are fixed to the original code.")
+        if config.get("learner_options", {}).get(PCM_LEARNER):
+            raise ValueError("Original PCM does not accept learner tuning overrides.")
 
 
 def task_key(task: Mapping[str, Any]) -> str:
@@ -170,9 +188,8 @@ def build_tasks(
             for scenario in selected_scenarios:
                 for delta in selected_deltas:
                     for rep in range(rep_start, stop + 1):
-                        # Covariates, random labels, and noise are paired across
-                        # scenarios and deltas. Fit randomness changes with the
-                        # response and learner; bootstrap randomness is shared.
+                        # Pair data and multipliers across learners; vary fit seeds
+                        # with the learner and response.
                         dgp_seed = stable_seed(
                             config["seed_base"], design, int(p), rep, "dgp"
                         )
@@ -186,6 +203,8 @@ def build_tasks(
                             "bootstrap",
                         )
                         for learner in selected_learners:
+                            if not methods_for_learner(learner).intersection(config["methods"]):
+                                continue
                             task = {
                                 "design": design,
                                 "scenario": scenario,
@@ -221,6 +240,8 @@ def build_tasks(
                                 task["late_options"] = validate_late_options(config["late_options"])
                             task["task_key"] = task_key(task)
                             tasks.append(task)
+    if not tasks:
+        raise ValueError("The requested subset contains no compatible simulation tasks.")
     return tasks
 
 
@@ -233,7 +254,6 @@ def make_calibrations(
     calibration_n = int(config.get("calibration_n", 100_000))
     output: dict[tuple[str, int, str], ScenarioCalibration] = {}
     for design, p, scenario in requested:
-        # Keep the calibration seed shared across scenarios.
         seed = stable_seed(config["seed_base"], "equal", p, "calibration")
         calibrated = calibrate_scenarios(
             p=p,
@@ -344,7 +364,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--learners")
     parser.add_argument("--rep-start", type=int, default=1)
     parser.add_argument("--rep-stop", type=int)
-    parser.add_argument("--workers", type=int, default=1)
+    parser.add_argument("--workers", type=int, help="worker processes (config value, otherwise 1)")
     parser.add_argument("--device", choices=("auto", "cpu", "cuda", "mps"))
     parser.add_argument("--checkpoint-every", type=int, default=10)
     parser.add_argument("--max-tasks", type=int)
@@ -359,6 +379,8 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     with arguments.config.open("r", encoding="utf-8") as stream:
         config: dict[str, Any] = json.load(stream)
     validate_config(config)
+    if arguments.workers is None:
+        arguments.workers = int(config.get("workers", 1))
     selected_learners = parse_csv(arguments.learners)
     if arguments.device:
         config.setdefault("learner_options", {}).setdefault("dnn", {})["device"] = (
@@ -399,6 +421,10 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     requested_task_hash = task_manifest_hash(tasks)
     current_core_hash = file_hash(Path(__file__).with_name("simcore.py"))
     current_runner_hash = file_hash(Path(__file__))
+    pcm_metadata = (
+        pcm_runtime_metadata(config.get("pcm_options", {}))
+        if any(task["learner"] == PCM_LEARNER for task in tasks) else None
+    )
     metadata_path = output_dir / "metadata.json"
     previous_metadata: dict[str, Any] = {}
     if metadata_path.exists():
@@ -418,6 +444,10 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
                 "Output directory was created by a different simulation runner; "
                 "choose a new output path."
             )
+        if previous_metadata.get("pcm") != pcm_metadata:
+            raise RuntimeError(
+                "Original PCM source, adapter, or R runtime changed; choose a new output path."
+            )
         previous_task_hash = previous_metadata.get("task_manifest_hash")
         if previous_task_hash is not None and previous_task_hash != requested_task_hash:
             raise RuntimeError(
@@ -432,6 +462,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         "runner_sha256": current_runner_hash,
         "task_manifest_hash": requested_task_hash,
         "tasks_requested": len(tasks),
+        "workers": arguments.workers,
         "config": config,
         "config_path": str(arguments.config.resolve()),
         "command": sys.argv,
@@ -442,6 +473,8 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         "started_unix": previous_metadata.get("started_unix", invoked_unix),
         "last_invoked_unix": invoked_unix,
     }
+    if pcm_metadata is not None:
+        metadata["pcm"] = pcm_metadata
     for field in ("finished_unix", "elapsed_seconds", "result_rows"):
         if field in previous_metadata:
             metadata[field] = previous_metadata[field]

@@ -1,0 +1,19 @@
+{
+  "name": "original_pcm_smoke",
+  "seed_base": 8012026,
+  "designs": ["pooled_random_shift"],
+  "scenarios": ["additive"],
+  "dimensions": [20],
+  "deltas": [0.0, 0.5],
+  "replications": 1,
+  "n": 80,
+  "target_pi": 0.5,
+  "rho": 0.5,
+  "sigma": 1.0,
+  "alpha": 0.05,
+  "bootstrap_draws": 200,
+  "learners": ["pcm_ranger"],
+  "methods": ["pcm_single_split", "pcm_derandomized"],
+  "propensity_mode": "estimated",
+  "calibration_n": 5000
+}

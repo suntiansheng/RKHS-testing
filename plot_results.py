@@ -26,6 +26,10 @@ METHODS = (
     ("gcm", "GCM", "#CC79A7", "D", "--"),
     ("oracle_score", "Oracle", "#333333", None, (0, (5, 2))),
 )
+PCM_METHODS = (
+    ("pcm_single_split", "PCM (one split)", "#A6761D", "v", "--"),
+    ("pcm_derandomized", "PCM (six splits)", "#E69F00", "P", ":"),
+)
 
 
 def comparison_data(reader=pd.read_csv):
@@ -54,6 +58,68 @@ def comparison_data(reader=pd.read_csv):
 def save_figure(fig, output, name):
     fig.savefig(output / f"{name}.pdf", bbox_inches="tight", pad_inches=0.04)
     plt.close(fig)
+
+
+def pcm_comparison_data():
+    data = pd.read_csv(RESULTS / "pcm_summary.csv")
+    data = data[data.scenario.isin(SCENARIOS)]
+    keys = ["scenario", "p", "delta", "method"]
+    if (len(data) != 192 or data.duplicated(keys).any()
+            or not data.n_valid.eq(300).all() or not data.n_failed.eq(0).all()
+            or not data.learner.eq("pcm_ranger").all()
+            or set(data.method) != {m[0] for m in PCM_METHODS}):
+        raise ValueError("Complete one- and six-split PCM results are required")
+    return data
+
+
+def pcm_figure(data, pcm, scenario, output):
+    fig, axes = plt.subplots(1, 2, figsize=(7.2, 2.9), sharey=True)
+    methods = METHODS + PCM_METHODS
+    for ax, p in zip(axes, (20, 50)):
+        for method, label, color, marker, style in methods:
+            source = pcm if method.startswith("pcm_") else data
+            points = source[(source.scenario == scenario) & (source.p == p)
+                            & (source.method == method)]
+            if method != "oracle_score" and not method.startswith("pcm_"):
+                points = points[points.learner == "rf"]
+            if scenario != "neural_composition":
+                points = points[points.delta <= 6]
+            points = points.sort_values("delta")
+            ax.plot(points.delta, points.rejection_rate, color=color, marker=marker,
+                    ls=style, markersize=3, label=label)
+        ax.set_title(rf"Random forest, $p={p}$")
+        ax.set_xlabel(r"Signal amplitude $a$")
+        ax.set_ylim(-0.025, 1.035)
+        ax.axhline(0.05, color=".55", lw=0.6, ls=":")
+        ax.grid(axis="y", color=".92", lw=0.5)
+    axes[0].set_ylabel("Empirical rejection rate")
+    handles, labels = axes[0].get_legend_handles_labels()
+    fig.legend(handles, labels, loc="lower center", ncol=4, frameon=False,
+               fontsize=8, columnspacing=1.1)
+    fig.subplots_adjust(left=0.09, right=0.99, bottom=0.34, top=0.88, wspace=0.15)
+    name = "hierarchical" if scenario == "neural_composition" else scenario
+    save_figure(fig, output, f"simulation_{name}_pcm_rf")
+
+
+def null_size_figure(data, output):
+    methods = METHODS[:4]
+    cells = data[data.delta == 0]
+    values = [cells.loc[cells.method == method, "rejection_rate"].to_numpy()
+              for method, *_ in methods]
+    if any(len(v) != 32 for v in values):
+        raise ValueError("The null-size figure requires 32 cells per procedure")
+    fig, ax = plt.subplots(figsize=(5.4, 3.0))
+    boxes = ax.boxplot(values, showfliers=False, patch_artist=True, widths=0.55)
+    ax.set_xticks(range(1, len(methods) + 1), [m[1] for m in methods])
+    for patch, method in zip(boxes["boxes"], methods):
+        patch.set_facecolor(method[2])
+        patch.set_alpha(0.65)
+    ax.axhline(0.05, color=".4", ls="--", lw=0.8)
+    ax.set_ylabel("Null rejection rate")
+    ax.set_ylim(0, 0.12)
+    ax.grid(axis="y", color=".92", lw=0.5)
+    fig.tight_layout()
+    save_figure(fig, output, "simulation_null_size_boxplot_no_points")
 
 
 def power_figure(data, scenario, output):
@@ -167,6 +233,8 @@ def main(argv=None):
         default=RESULTS / "figures",
         help="output directory (default: results/figures)",
     )
+    parser.add_argument("--manuscript-only", action="store_true",
+                        help="omit the additional all-learner compact figures")
     args = parser.parse_args(argv)
     args.output.mkdir(parents=True, exist_ok=True)
     plt.rcParams.update(
@@ -187,8 +255,14 @@ def main(argv=None):
     )
     data = comparison_data()
     for scenario in SCENARIOS:
-        power_figure(data, scenario, args.output)
+        if not args.manuscript_only or scenario == "neural_composition":
+            power_figure(data, scenario, args.output)
     interpolation_figure(pd.read_csv(RESULTS / "interpolation.csv"), args.output)
+    null_size_figure(data, args.output)
+    pcm = pcm_comparison_data()
+    for scenario in SCENARIOS:
+        pcm_figure(data, pcm, scenario, args.output)
+    pcm[pcm.delta.eq(0)].to_csv(args.output / "pcm_null_size.csv", index=False)
     data[data.delta == 0].groupby("method").agg(
         cells=("p", "size"),
         minimum=("rejection_rate", "min"),
@@ -209,7 +283,7 @@ def main(argv=None):
     )
     matched["gain"] = matched.orthogonal_nosplit - matched.orthogonal_single_split
     matched.to_csv(args.output / "matched_splitting_comparisons.csv")
-    print(f"Saved five figures and three tables to {args.output}")
+    print(f"Saved simulation figures and tables to {args.output}")
 
 
 if __name__ == "__main__":

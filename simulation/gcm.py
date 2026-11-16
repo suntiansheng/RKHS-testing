@@ -8,7 +8,7 @@ from scipy.stats import norm
 
 
 def gcm_from_moments(n, mean, sample_sd, *, alpha=0.05):
-    """Equation (3), using an archived standard deviation with ddof=1.
+    """GCM statistic from a mean and sample standard deviation (ddof=1).
 
     The paper divides the centered sum of squares by n, not n-1.
     Calibration is two-sided standard normal, not a Student t test.

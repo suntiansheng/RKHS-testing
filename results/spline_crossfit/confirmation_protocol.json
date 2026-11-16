@@ -1,0 +1,8 @@
+{
+  "frozen_at_unix": 1793991540.9872599,
+  "primary_cells": 12,
+  "original_calibration_is_primary": true,
+  "independent_null_diagnostic": "Use confirmation null replication IDs 3000..4999 for calibration, disjoint from alternative IDs 0..2999 and null evaluation IDs 0..2999. Conservative empirical-rank calibration, ties retained. Keep it labeled simulation-only; report paired two-sample bootstrap intervals including calibration and evaluation uncertainty. This diagnostic does not replace the original tests.",
+  "bootstrap_diagnostic_replicates": 2000,
+  "all_primary_cells_retained_regardless_of_ranking": true
+}

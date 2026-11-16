@@ -267,7 +267,7 @@ def frozen_main_sample(
 
 
 def build_text_design(sample: pd.DataFrame) -> tuple[np.ndarray, dict[str, Any]]:
-    """Build the frozen text-only design; priority features are forbidden."""
+    """Hash opening language into 128 unit-norm coordinates."""
 
     vectorizer = HashingVectorizer(
         n_features=HASH_FEATURES,
@@ -914,13 +914,13 @@ def main() -> int:
         },
         "outputs": {"tables": table_paths, "sha256": artifact_hashes},
         "caveats": [
-            "This population/outcome design was selected after exploratory screening; p-values are descriptive rather than preregistered confirmatory evidence.",
+            "The population and outcome were chosen after exploratory screening; p-values are descriptive.",
             "Priority features are excluded because they determine D exactly and would eliminate common support.",
             "Opening language is post-assignment behavior and may mediate the association between integrative potential and satisfaction.",
-            "The participant-disjoint greedy extraction yields a selected dependent subset with unequal realized group counts and is not the manuscript's pooled-iid random-count experiment.",
+            "The greedy participant-disjoint extraction is a selected subset of a corpus with repeated participants, rather than an iid sample.",
             "The 1-5 satisfaction score is ordinal; the both-extremely-satisfied binary outcome is reported as a scale sensitivity.",
-            "The word contrasts describes filtered marginal unigram presence P(W|D), not the tested conditional-mean contrast.",
-            "Software nuisance learners have not been certified against the manuscript's learner-specific finite-sample conditions.",
+            "Word contrasts describe marginal unigram presence P(W|D); the regression test targets conditional mean outcomes.",
+            "Finite-sample guarantees require the fitted nuisances to satisfy the stated rate and complexity conditions.",
         ],
         "environment": {
             "python": platform.python_version(),

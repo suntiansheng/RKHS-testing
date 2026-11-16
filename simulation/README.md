@@ -21,7 +21,7 @@ The archived single-split, Yan and oracle curves provide the other comparisons.
 The supplementary interpolation and small-sample cross-fitting studies have
 separate runners under `../experiments/`.
 
-The additional CATE experiment uses the existing hierarchical design with
+The CATE experiment uses the existing hierarchical design with
 treatment-arm noise standard deviations 1 and 1.5. It compares NORD, CF-NORD,
 single-split and Yan with all four outcome learners, plus a shared oracle; see
 [the CATE instructions](../experiments/cate_readme.md).
@@ -30,9 +30,9 @@ The `late_iv` design adds a valid binary instrument, endogenous treatment,
 and a constant 0.6 first stage. All tests use the instrument as the group
 variable to test the zero conditional-LATE null. The hierarchical signal,
 learners, and calibration budgets match CATE; see [the LATE
-instructions](../experiments/late_readme.md) for the construction. Both main
-figures retain NORD, single-split, Yan and oracle; the supplementary figures
-add CF-NORD.
+instructions](../experiments/late_readme.md) for the construction. Both manuscript
+figures retain NORD, single-split, Yan and oracle. Additional diagnostic figures
+include CF-NORD.
 
 Outcome learners are cubic-spline GAM, random forest, Lasso, and a neural
 network. Propensity is estimated by spline logistic regression using the first
@@ -90,3 +90,40 @@ python summarize.py --inputs runs/single-split --output runs/single-split/summar
 Fresh runs write their own tables and diagnostic figures. To render the final
 manuscript figures from the supplied compact archives, run
 `python reproduce_figures.py` from the repository root.
+
+## PCM comparison
+
+PCM uses the authors' [R implementation](https://github.com/ARLundborg/pcm_code),
+pinned at commit `3822659390510d65c36857f8801c893e94850774`.
+The files in `vendor/pcm_code/` are unmodified; their hashes are checked before
+execution. Install R, `ranger`, and `jsonlite`. Set `PCM_RSCRIPT` if Rscript is
+not on your path.
+
+From the repository root:
+
+```sh
+python simulation/run_simulation.py --config simulation/configs/pcm_smoke.json --output runs/pcm-smoke
+python simulation/run_simulation.py --config simulation/configs/pcm.json --output runs/pcm --scenarios additive,product,composition,neural_composition
+python simulation/summarize.py --inputs runs/pcm --output runs/pcm/summary
+```
+
+The production run uses the same data-generation seeds and reference calibration
+as the regression grid, with 300 replications per cell. It evaluates PCM once per
+dataset using 500-tree Ranger fits, all predictors available at each split, and
+the remaining upstream defaults. One-split PCM uses the first statistic; six-split
+PCM compares the mean of six statistics with the upper standard-normal quantile.
+It does not average p-values. Both versions share the first split.
+
+The original fitting steps, variance floor, and sample-SD studentization are
+preserved. The bridge exposes diagnostics without changing the statistic.
+Reference tests compare all six p-values and the final R RNG state against direct
+upstream calls. Failures are recorded, with no substituted p-values or splits.
+R and package versions are recorded and checked on resume.
+
+The manuscript restricts the PCM comparison to random-forest panels. The same
+PCM output is shared across panels; it is independent of the Python outcome
+learner. `pcm.json` also retains an unreported Friedman design for compatibility
+with the original 20-cell size audit. Selecting the four reported designs gives
+16 null cells. Size-audit columns are diagnostic; reported curves are not removed.
+
+The final spline comparison has its own [runner and instructions](../experiments/spline_crossfit_readme.md).

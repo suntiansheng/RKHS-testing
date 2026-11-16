@@ -1,0 +1,86 @@
+{
+  "upstream": {
+    "repository": "https://github.com/ARLundborg/pcm_code",
+    "commit": "3822659390510d65c36857f8801c893e94850774",
+    "paper": "https://arxiv.org/abs/2211.02039",
+    "files": {
+      "test_functions.R": "7696d75dae0bc006bd3a943774d3e50558bfcbfba522242b6eb5d99e15249a4e",
+      "sim_ranger_comparison.R": "d20f3e602bdf409213d9b052b8751cd3313e00331cb1dc3c16e6f3fc2904fcc3",
+      "README.md": "6a024c299f4d9013b09b1fb728a536be160f13fffd7f520edc87963302785de7"
+    }
+  },
+  "runtime": {
+    "R": "R version 4.4.3 (2025-02-28)",
+    "RNG_kind": [
+      "Mersenne-Twister",
+      "Inversion",
+      "Rejection"
+    ],
+    "jsonlite": "1.9.1",
+    "ranger": "0.17.0"
+  },
+  "configuration": {
+    "alpha": 0.05,
+    "bootstrap_draws": 200,
+    "calibration_n": 100000,
+    "deltas": [
+      0.0,
+      0.1,
+      0.2,
+      0.3,
+      0.5,
+      0.8,
+      1.2,
+      1.6,
+      2.5,
+      4.0,
+      6.0,
+      20.0
+    ],
+    "designs": [
+      "pooled_random_shift"
+    ],
+    "dimensions": [
+      20,
+      50
+    ],
+    "learners": [
+      "pcm_ranger"
+    ],
+    "methods": [
+      "pcm_single_split",
+      "pcm_derandomized"
+    ],
+    "n": 400,
+    "name": "pooled_random_shift_original_pcm",
+    "propensity_mode": "estimated",
+    "replications": 300,
+    "rho": 0.5,
+    "scenarios": [
+      "additive",
+      "product",
+      "composition",
+      "friedman",
+      "neural_composition"
+    ],
+    "seed_base": 8012026,
+    "sigma": 1.0,
+    "target_pi": 0.5,
+    "workers": 6
+  },
+  "replication_rows": 72000,
+  "failures": 0,
+  "raw_input_sha256": {
+    "null": "e933827aaeea21147bf6c09243292236317d0f398f4e60eba98f7efbfcbffb12",
+    "alternatives": "29106d7e5eeb04162276ad25f4f5b3fd6caea515f1c4a4c4daede569b0ccfeb5"
+  },
+  "summary_sha256": "45361a5f040803f47e947ff34277746ad82bba4183d6044b03ba5d8c58740c7c",
+  "reported_scenarios": [
+    "additive",
+    "product",
+    "composition",
+    "neural_composition"
+  ],
+  "reported_learner": "random forest",
+  "calibration": "One-sided standard normal; six-split PCM uses the mean of six statistics."
+}

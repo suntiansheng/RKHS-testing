@@ -1,9 +1,5 @@
 #!/usr/bin/env python3
-"""Matched NORD/CF-NORD comparisons with baseline and baseline-plus-text covariates.
-
-Samples and features follow the fixed manuscript specifications. Baseline
-predictions can be reused from a completed companion run or fitted afresh.
-"""
+"""CaSiNo NORD and CF-NORD comparisons with baseline and text covariates."""
 
 from __future__ import annotations
 
@@ -81,7 +77,6 @@ def run_job(payload):
     kernels = {h: core.rbf_kernel_matrix(X, h) for h in (0.5, 1.0, 2.0)}
     for learner in learners:
         for regime in core.REGIMES:
-            # Keep random seeds fixed across selections and covariate sets.
             e_seed = core.stable_seed(baseline.VERSION, "frozen_main", learner, regime, "e")
             if reuse:
                 e = cached[f"e_{learner}_{regime}"].to_numpy()

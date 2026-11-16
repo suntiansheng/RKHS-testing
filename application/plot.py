@@ -42,7 +42,7 @@ INPUT_FILES = {
 
 
 def configure_style() -> None:
-    """Set typography for a six-inch-wide manuscript figure."""
+    """Set shared figure typography."""
     plt.rcParams.update(
         {
             "font.family": "DejaVu Sans",
@@ -105,7 +105,7 @@ def _boolean_series(series: pd.Series, label: str) -> pd.Series:
 
 
 def load_inputs(results_dir: Path) -> tuple[pd.DataFrame, ...]:
-    """Read and validate the five frozen CSV inputs."""
+    """Read and validate the five analysis tables."""
     sample = _read_csv(
         results_dir,
         "sample",
@@ -572,7 +572,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         "--results-dir",
         type=Path,
         required=True,
-        help="Directory containing the five frozen integrative-potential CSVs.",
+        help="Directory containing the five integrative-potential CSVs.",
     )
     parser.add_argument(
         "--output-dir",

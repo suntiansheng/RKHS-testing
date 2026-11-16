@@ -56,7 +56,8 @@ class ConfigurationTests(unittest.TestCase):
 
     def test_smoke_configuration_uses_total_n_and_estimated_propensity(self) -> None:
         validate_config(self.config)
-        self.assertEqual(set(self.config["methods"]), set(SUPPORTED_METHODS))
+        self.assertEqual(set(self.config["methods"]),
+                         set(SUPPORTED_METHODS) - {"pcm_single_split", "pcm_derandomized"})
         self.assertIn("orthogonal_single_split", SUPPORTED_METHODS)
         tasks = build_tasks(
             self.config,

@@ -1,8 +1,7 @@
-"""Measure cancellation in the frozen simulation signals, without fitting learners.
+"""Estimate population moments of the simulation signals.
 
-Reuse the calibration covariates and their negatives. Standard errors refer to
-the independent antithetic pairs, not to 2*n independent observations. This is
-a descriptive population-moment calculation, not another power experiment.
+Antithetic covariate pairs reduce Monte Carlo variance. Standard errors use
+independent pairs as the sampling units.
 """
 
 from __future__ import annotations

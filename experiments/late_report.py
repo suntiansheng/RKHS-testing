@@ -29,7 +29,7 @@ DIAGNOSTIC_COUNTS = ("n0", "n1", "n_always_takers", "n_compliers", "n_never_take
 
 
 def validate_config(config: dict) -> None:
-    """Require the original tuning and grid plus the fixed IV construction."""
+    """Validate the LATE grid, learner settings, and IV construction."""
     reference = json.loads((ROOT / "simulation/configs/cate.json").read_text())
     reference.update(designs=["late_iv"], late_options=LATE_OPTIONS)
     for key, value in reference.items():
@@ -192,7 +192,7 @@ def write_report(summary: pd.DataFrame, null: pd.DataFrame, diagnostic: pd.DataF
              "Observed treatment is D = D(A), and "
              "Y(d) = b_N(X) + 2(U - 0.5) + d[C a f_N(X) + (1-C)] + (1 + 0.5d) epsilon_d. "
              "The potential-outcome errors are independent standard normals, independent of (X,U,A). "
-             "The signal and its reference-sample normalization are unchanged from the hierarchical regression setting.", "",
+             "The signal and reference-sample normalization match the hierarchical regression experiment.", "",
              "The conditional LATE is a f_N(X); the instrument first stage is 0.6, and the conditional "
              "reduced-form contrast is 0.6 a f_N(X). Its zero restriction is equivalent to the global "
              "zero conditional-LATE null in this design. The population LATE is zero at every amplitude. "

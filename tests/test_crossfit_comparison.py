@@ -1,4 +1,4 @@
-"""Scientific checks for the standalone cross-fit experiment."""
+"""Checks for full-sample and cross-fitted simulation comparisons."""
 
 from pathlib import Path
 import sys

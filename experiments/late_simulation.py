@@ -1,4 +1,4 @@
-"""Run the LATE experiment in independently resumable simulation shards."""
+"""Run the LATE experiment in resumable simulation shards."""
 
 from __future__ import annotations
 

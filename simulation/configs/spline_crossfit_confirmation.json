@@ -1,0 +1,68 @@
+{
+  "sample_sizes": [
+    120,
+    160
+  ],
+  "p": 20,
+  "rho": 0.5,
+  "sigma": 1.0,
+  "alpha": 0.05,
+  "bootstrap_draws": 999,
+  "reference_n": 1000,
+  "bandwidth_squared": 40.0,
+  "learner": "gam",
+  "learner_options": {
+    "n_knots": 5,
+    "ridge_alphas": [
+      0.01,
+      0.1,
+      1.0,
+      10.0,
+      100.0
+    ]
+  },
+  "propensity_options": {
+    "cv_folds": 5,
+    "n_knots": 5,
+    "max_iter": 3000,
+    "Cs": [
+      0.001,
+      0.005,
+      0.025,
+      0.125,
+      0.625,
+      3.125,
+      15.625,
+      78.125
+    ]
+  },
+  "propensity_clip": 0.01,
+  "dgps": [
+    "original",
+    "fixed_pooled_mean"
+  ],
+  "five_fold_n": [
+    160
+  ],
+  "five_fold_amplitudes": [
+    0.0,
+    1.2,
+    2.5
+  ],
+  "phase": "confirmation",
+  "seed_base": 2026110602,
+  "amplitudes": [
+    0.0,
+    1.2,
+    2.0,
+    2.5,
+    3.2
+  ],
+  "primary_amplitudes": [
+    2.0,
+    2.5,
+    3.2
+  ],
+  "null_replications": 5000,
+  "power_replications": 3000
+}

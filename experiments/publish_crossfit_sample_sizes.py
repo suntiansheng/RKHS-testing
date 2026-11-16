@@ -1,7 +1,6 @@
-"""Validate and plot the n=120,160 extension beside the completed n=200 study.
+"""Validate and plot cross-fit comparisons at n=120,160,200.
 
-The combined figures use archived simulation results and the prespecified joint
-51-cell null screen. The original run-level screens are preserved.
+The combined size audit uses a joint 51-cell null family.
 """
 
 from __future__ import annotations
@@ -165,7 +164,6 @@ def main():
                              ("null_size.csv", null)]:
         atomic_write_csv(output / filename, frame)
 
-    # Reuse the figure builder without changing the historical reproduction code.
     original_save = plots.save
     def save_with_manuscript_names(figure, destination, name):
         flagged = null[null.propensity_mode.eq("estimated")

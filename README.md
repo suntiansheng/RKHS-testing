@@ -1,14 +1,12 @@
 # NORD: tests for equality of regression functions
 
 Code accompanying *Neyman-Orthogonal Tests for Equality of Regression Functions*.
-NORD uses the residual product `(Y - mu(X)) * (D - e(X))`, an RKHS norm statistic,
-and centered Gaussian multiplier calibration with a plus-one p-value. This
-repository reproduces the figures in the final JRSSB main paper and supplement.
+NORD combines the residual product `(Y - mu(X)) * (D - e(X))` with an RKHS norm
+and centered Gaussian multiplier calibration. Tests use a plus-one p-value.
 
 ## Installation
 
-The archived experiments used Python 3.12.2 and the dependency versions in
-`requirements-reproduce.txt`:
+The archived experiments used Python 3.12.2. Install their dependency versions:
 
 ```sh
 python -m venv .venv
@@ -19,99 +17,71 @@ export OMP_NUM_THREADS=1
 export MKL_NUM_THREADS=1
 ```
 
-Run the commands below from the repository root. `requirements.txt` lists
-broader supported versions. Refitting may give small numerical differences
-across hardware or library versions, especially for forests and neural networks.
+Run commands from the repository root. `requirements.txt` lists compatible
+version ranges. Refitting forests and neural networks may produce small
+numerical differences across platforms or library versions.
 
-## Reproduce every manuscript figure
+## Reproduce the manuscript figures
 
 ```sh
 python reproduce_figures.py
 ```
 
-This verifies the supplied result-table hashes and writes all **16 figure PDFs**,
-summary tables and a reproduction manifest to `results/figures/jrssb/`.
-Use `--output PATH` to choose another directory. No model fitting, corpus download
-or external manuscript directory is needed. The filenames match the submission;
-older suffixes such as `_v9` are retained as asset names.
+The command verifies the archived table checksums and writes the 16 figure PDFs,
+summary tables, and an output manifest to `results/figures/jrssb/`.
+Use `--output PATH` to change the destination. It requires no model fitting or
+corpus download. The figure filenames match `main.tex` and `supplement.tex`.
 
-| Manuscript content | Supplied figure assets |
+| Experiment | Figure files |
 | --- | --- |
-| Main regression experiment and three supplementary alternatives | `simulation_hierarchical_v9.pdf`, `simulation_{additive,product,composition}_compact_v9.pdf` |
-| Supplementary interpolation and regularized cross-fitting experiments | `simulation_crossfit_interpolation_v9.pdf`, `simulation_crossfit_additive_{null_size,power_ratio}.pdf` |
-| Main CATE and conditional LATE experiments (four tests) | `simulation_{cate,late}_hierarchical.pdf` |
-| Supplementary CATE and conditional LATE comparisons including CF-NORD (five tests) | `simulation_{cate,late}_hierarchical_crossfit.pdf` |
-| Four rows of the main CaSiNo comparison | `casino_baseline_cate.pdf`, `casino_baseline_max_satisfaction.pdf`, `casino_results_v9.pdf`, `casino_results_max_satisfaction.pdf` |
-| Supplementary opening-word contrasts | `casino_word_contrasts_v5.pdf` |
+| Main regression comparison | `simulation_null_size_boxplot_no_points.pdf`, `simulation_hierarchical_v9.pdf` |
+| Supplementary random-forest comparisons with PCM | `simulation_{additive,product,composition,hierarchical}_pcm_rf.pdf` |
+| Interpolation | `simulation_crossfit_interpolation_v9.pdf` |
+| Spline NORD versus CF-NORD | `simulation_crossfit_spline_null_revisit.pdf`, `simulation_crossfit_spline_power_models.pdf` |
+| CATE and conditional LATE | `simulation_{cate,late}_hierarchical.pdf` |
+| CaSiNo comparisons | `casino_baseline_cate.pdf`, `casino_baseline_max_satisfaction.pdf`, `casino_results_v9.pdf`, `casino_results_max_satisfaction.pdf` |
+| Opening-word contrasts | `casino_word_contrasts_v5.pdf` |
 
-The main CaSiNo figure combines four assets in LaTeX. The repository generates
-each source asset. [results/README.md](results/README.md) describes the archived
-inputs, their provenance and the distinction between plotting and refitting.
-The regularized cross-fitting comparison reports NORD / CF-NORD rejection-rate
-ratios with paired Monte Carlo intervals; the plotting command also exports
-`crossfit_rejection_rate_ratios.csv`.
+The CaSiNo figure combines four source assets in LaTeX.
+[results/README.md](results/README.md) describes the supplied tables and provenance.
+All reported rejection curves are retained, including procedures with elevated
+null rejection rates. PCM's null rates prevent comparison at a common type-I error.
 
 ## Run the simulations
 
-| Experiment | Sample size | Replications per cell | Gaussian multiplier draws |
+| Experiment | Sample size | Replications per cell | Multiplier draws |
 | --- | --- | --- | --- |
-| Main regression designs and matched GCM comparison | 400 | 300 | 200 |
-| Hierarchical CATE | 400 | 300 | 200 |
-| Hierarchical conditional LATE | 400 | 300 | 200 |
+| Regression designs and matched GCM comparison | 400 | 300 | 200 |
+| Random-forest PCM, one and six splits | 400 | 300 | Normal calibration |
+| Hierarchical CATE and conditional LATE | 400 | 300 | 200 |
 | Interpolating nearest-neighbour regression | 400 | 500 | 199 |
-| NORD versus two-fold CF-NORD | 120, 160 | 2,000 null; 1,000 alternative | 999 |
+| Spline NORD versus CF-NORD | 120, 160 | 5,000 null; 3,000 alternative | 999 |
 
-A short execution check covers all main methods and learners:
+For a short execution check:
 
 ```sh
 python simulation/run_simulation.py --config simulation/configs/smoke.json --output runs/smoke --device cpu
 python simulation/summarize.py --inputs runs/smoke --output runs/smoke/summary
 ```
 
-See [simulation/README.md](simulation/README.md) for the full regression runs,
-configuration options and checkpointing. The matched GCM comparison uses:
+Full regression and PCM commands are in [simulation/README.md](simulation/README.md).
+PCM requires R with `ranger` and `jsonlite`. Its upstream implementation is pinned
+and checked before execution.
 
-```sh
-python experiments/gcm_comparison.py --phase null --workers 4
-python experiments/gcm_comparison.py --phase power --workers 4
-python experiments/publish_gcm_comparison.py
-```
+The other studies have separate runners and instructions:
 
-[The GCM instructions](experiments/gcm_comparison_readme.md) also cover the
-paired NORD comparison and signal-cancellation diagnostic.
+- [Matched NORD and GCM](experiments/gcm_comparison_readme.md)
+- [CATE](experiments/cate_readme.md) and [conditional LATE](experiments/late_readme.md)
+- [Interpolation](experiments/interpolation_readme.md)
+- [Spline cross-fitting comparison](experiments/spline_crossfit_readme.md), including the independent pilot and five-fold sensitivity
 
-For CATE and conditional LATE:
+The CATE and LATE manuscript figures contain NORD, single split, Yan, and a shared
+oracle: 13 distinct test-learner combinations. The supplied runs also contain
+two-fold CF-NORD as an additional diagnostic, giving 17 combinations in each
+archive. Earlier exploratory cross-fitting studies remain available under
+`experiments/`; their results are separate from the reported spline study.
 
-```sh
-python experiments/cate_simulation.py --output runs/cate_hierarchical_crossfit --jobs 8
-python experiments/cate_report.py --inputs runs/cate_hierarchical_crossfit/shards/* --output runs/cate_hierarchical_crossfit/report
-python experiments/late_simulation.py --output runs/late_hierarchical_crossfit --jobs 8
-python experiments/late_report.py --inputs runs/late_hierarchical_crossfit/shards/* --output runs/late_hierarchical_crossfit/report
-```
-
-See the [CATE](experiments/cate_readme.md) and [LATE](experiments/late_readme.md)
-instructions for the data-generating processes, paired seeds and oracle. Each
-design compares NORD, two-fold CF-NORD, single-split, Yan and oracle. The four
-fitted tests use each of the four nuisance learners, giving 17 distinct
-test–learner combinations with the shared oracle. CF-NORD pools held-out scores
-from all 400 observations and uses the same kernel and multiplier draws as
-NORD and oracle. The reports include paired NORD-minus-CF-NORD comparisons in
-`paired_crossfit_differences.csv`. The main figures retain NORD, single-split,
-Yan and oracle; the supplementary figures add CF-NORD.
-
-For the two supplementary cross-fitting experiments:
-
-```sh
-python experiments/interpolation.py --output runs/interpolation --bootstrap-draws 199
-python experiments/crossfit_comparison.py --output runs/crossfit_comparison/n120_n160_k2 --sample-sizes 120,160 --workers 4 --write-raw
-python experiments/plot_crossfit_manuscript.py --run runs/crossfit_comparison/n120_n160_k2 --output runs/crossfit_comparison/figures
-```
-
-See the [interpolation](experiments/interpolation_readme.md) and
-[cross-fit](experiments/crossfit_comparison_readme.md) instructions for details.
-Full experiments require substantially more computation than the smoke run.
-
-## Run the CaSiNo application
+## CaSiNo application
 
 ```sh
 python application/download_data.py
@@ -120,16 +90,16 @@ python application/plot_joint.py --results-dir runs/casino-joint --output-dir ru
 python application/word_analysis.py --output-dir runs/casino-words
 ```
 
-The joint analysis fits the four comparisons in the main paper: two outcomes
-(mean satisfaction and joint maximum satisfaction), each with baseline or
-baseline-plus-opening-text covariates. It includes nuisance-learner, bandwidth,
-participant-selection and age-coding sensitivities. The word analysis produces
-the descriptive supplementary plot. See [application/README.md](application/README.md).
+The analysis compares aligned and maximal-integrative-potential groups using a
+participant-disjoint sample. It tests mean satisfaction and joint maximum
+satisfaction with 36 baseline covariates or 164 baseline-plus-text covariates.
+It also reports learner, bandwidth, participant-selection, and age-coding checks.
+See [application/README.md](application/README.md).
 
-The downloader verifies the public corpus checksum. Raw dialogues, participant
-records, fitted predictions and replication-level simulation archives are not
-included. The data source is the [ConvoKit CaSiNo corpus](https://convokit.cornell.edu/documentation/casino-corpus.html),
+The downloader verifies the public [ConvoKit CaSiNo corpus](https://convokit.cornell.edu/documentation/casino-corpus.html),
 introduced by [Chawla et al. (2021)](https://aclanthology.org/2021.naacl-main.254/).
+Raw dialogues, participant records, fitted predictions, and replication-level
+simulation archives are excluded from version control.
 
 ## Tests
 
@@ -139,6 +109,6 @@ python -m unittest discover -s tests
 python -m unittest discover -s application/tests
 ```
 
-Tests cover scores, multiplier centering, sample separation, learner fitting,
-seeds, checkpoint integrity and archive consistency. Corpus-dependent tests use
-`CASINO_CORPUS_DIR` and `CASINO_RESULTS_DIR`; other tests require no download.
+Tests cover score definitions, multiplier centering, sample separation, fitting,
+seeds, checkpoint integrity, native PCM agreement, and archived numerical claims.
+Corpus-dependent checks use `CASINO_CORPUS_DIR` and `CASINO_RESULTS_DIR`.

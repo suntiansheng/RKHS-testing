@@ -1,56 +1,55 @@
 # Archived results
 
-`python reproduce_figures.py` renders all 16 figure assets in the final JRSSB
-main paper and supplement. It verifies SHA-256 hashes in `manifest.json` before
-reading the supplied tables. This path regenerates figures from completed runs;
-it does not refit learners or rerun Monte Carlo experiments.
+`python reproduce_figures.py` renders the 16 figure assets referenced by
+`main.tex` and `supplement.tex`. It checks SHA-256 hashes in `manifest.json`
+before reading the tables. Plotting uses completed runs; it does not refit
+learners or repeat Monte Carlo experiments.
 
 | Files | Contents |
 | --- | --- |
-| `frozen_summary.csv`, `single_split_summary.csv` | Original regression-test and single-split summaries |
-| `gcm_summary.csv`, `gcm_paired_nord_summary.csv` | Matched GCM and NORD summaries, each with 384 cells and 300 replications per cell |
-| `gcm_paired_differences.csv` | Paired NORD-minus-GCM rejection differences |
-| `gcm_signal_diagnostic.csv`, `gcm_signal_diagnostic_metadata.json`, `gcm_comparison/` | Signal-cancellation calculations, protocol and reference-sample calibration |
+| `frozen_summary.csv`, `single_split_summary.csv` | Original regression and single-split summaries |
+| `gcm_summary.csv`, `gcm_paired_nord_summary.csv` | Matched GCM and NORD runs, each with 384 cells and 300 replications per cell |
+| `gcm_paired_differences.csv`, `gcm_comparison/` | Paired rejection differences, protocol, and calibration |
+| `pcm_summary.csv`, `pcm_provenance.json` | Original one- and six-split R PCM results, including the four reported designs and an additional Friedman design |
 | `interpolation.csv` | Twelve cells with 500 replications and 199 multiplier draws each |
-| `crossfit_comparison/n120_n160_k2/` | Configuration, completion record, 306 summary cells, 144 paired differences and 34 null rates |
-| `cate_hierarchical/`, `late_hierarchical/` | Each experiment's 204 rejection-rate cells, 17 null rates, paired NORD-minus-single-split and NORD-minus-CF-NORD differences, and run validation |
-| `casino/` | The 136 joint-application tests, sample counts, selection-overlap summaries, run metadata and word-frequency summaries |
+| `spline_crossfit/` | Independent pilot, selected amplitudes, and the spline confirmation study with 5,000 null and 3,000 alternative replications |
+| `cate_hierarchical/`, `late_hierarchical/` | Each design's 204 cells and 17 null rates, including additional CF-NORD diagnostics |
+| `casino/` | Joint-application tests, sample counts, selection summaries, software metadata, and aggregate word counts |
+| `crossfit_comparison/n120_n160_k2/` | Earlier exploratory four-learner study; not used for the manuscript's spline figures |
 
-## Figure provenance
+## Numerical provenance
 
-The additive, product, composition and hierarchical figures use matched NORD/GCM
-reruns. Single-split, Yan and oracle curves come from the original simulations.
-NORD and GCM share fitted scores; the original single-split comparison was run
-separately. CATE and LATE each compute one oracle per dataset, reused across the
-four learner panels. Each design includes NORD, two-fold CF-NORD, single-split
-and Yan for each of the four learners. The main assets
-`simulation_{cate,late}_hierarchical.pdf` retain the four original tests: NORD,
-single-split, Yan and oracle. The supplementary assets
-`simulation_{cate,late}_hierarchical_crossfit.pdf` add CF-NORD. CF-NORD
-pools all held-out scores and shares the full-sample kernel and multiplier draws with NORD and oracle. Its
-paired comparisons are in `paired_crossfit_differences.csv`; the single-split
-comparisons remain in `paired_differences.csv`. The interpolating-learner archive
-uses 199 multipliers; the main regression, CATE and LATE experiments use 200,
-and the regularized cross-fitting comparison uses 999.
+The regression figures use matched NORD/GCM runs and archived single-split,
+Yan, and oracle curves. The null-size boxplot contains 32 cells per procedure:
+four designs, two dimensions, and four outcome learners. Supplementary PCM
+figures use only random-forest panels and retain both PCM curves despite their
+elevated null rejection rates. The PCM summary includes all completed cells;
+figure builders select the four reported designs.
 
-The CaSiNo comparison tables come from the completed `casino-baseline-plus-text-v1`
-analysis. `casino/analysis_plan.json` records its data and source hashes;
-`casino/analysis_summary.json` records completion and software versions. The
-word table is the completed opening-text analysis on the same participant-disjoint
-main sample. It contains aggregate counts and bootstrap summaries, not dialogue
-text or participant-level data. The archived scripts used to produce the runs
-predate packaging changes, so their historical source hashes are retained as
-provenance rather than treated as current-source checksums.
+The spline archive contains both response models: the original additive model
+and the model with pooled regression fixed across amplitudes. It includes the
+independent pilot, confirmation comparisons with estimated and known propensity,
+five-fold sensitivity, and independent-reference prediction diagnostics.
 
-The archives retain older diagnostic columns and additional configurations from
-the original runs. Figure builders select the designs and procedures reported
-in the final manuscript. No model fitting or manuscript files are needed.
+CATE and LATE each have 13 manuscript test-learner combinations: NORD,
+single split, and Yan with four learners, plus one oracle reused across panels.
+The archives also include two-fold CF-NORD, giving 17 combinations. Those
+additional results are available through the experiment report scripts.
+
+CaSiNo tables come from the completed `casino-baseline-plus-text-v1` analysis.
+`casino/analysis_plan.json` records the data and historical source hashes;
+`casino/analysis_summary.json` records completion and software versions.
+The word table contains aggregate counts and bootstrap summaries from the same
+participant-disjoint sample, without dialogue text or participant records.
+
+Historical source hashes describe the code used for those runs and remain
+unchanged. `manifest.json` records checksums for the files distributed here.
+Rendered PDF metadata may differ across runs; checksums of generated outputs
+are recorded separately in `reproduction.json`.
 
 ## Recompute results
 
-The root and experiment READMEs give full rerun commands. Fresh simulations write
-to `runs/`; keep these separate from the supplied archives. The CATE and LATE
-report manifests describe their original replication-level inputs, which are
-excluded from this compact distribution. Full reruns regenerate those inputs,
-checkpoints, diagnostic records and reports. `manifest.json` is the integrity
-record for files actually distributed here.
+The root and experiment READMEs give rerun commands. Fresh simulations write to
+`runs/`, separately from the supplied archives. Replication-level inputs are
+excluded from this compact distribution; full reruns regenerate checkpoints,
+diagnostics, and reports.

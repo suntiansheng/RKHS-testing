@@ -1,8 +1,6 @@
-"""Replay the published grid, adding GCM to exactly matched full-sample scores.
+"""Compare GCM and NORD using shared full-sample nuisance predictions.
 
-No source simulation function, learner specification, or archived result is
-changed. NORD is recalculated as a reproduction check. Its nuisance predictions
-are shared with GCM. Checkpoints contain sufficient score moments for GCM.
+Checkpoints retain score moments and paired rejection decisions.
 """
 
 from __future__ import annotations
@@ -70,8 +68,7 @@ def run_job(job):
     noise = rng.normal(0, config["sigma"], config["n"])
     h = core.median_bandwidth(x)
     kernel = core.rbf_kernel_matrix(x, h)
-    # LogisticRegressionCV uses deterministic, unshuffled folds and lbfgs.
-    # Its random_state has no effect; equality across seeds is unit-tested.
+    # The propensity fit uses deterministic folds and lbfgs.
     eseed = core.stable_seed(fit_seed(config, p, "additive", 0., rep, "gam"), "pooled_e")
     propensity = core.fit_propensity(x, d, x, design="pooled_random_shift",
         seed=eseed, clip=config["propensity_clip"], options=config["propensity_options"])

@@ -1,7 +1,6 @@
-"""Validate the complete GCM run and publish matched NORD/GCM curves.
+"""Validate a complete GCM run and summarize paired NORD and GCM results.
 
-The original summaries remain immutable. NORD is refreshed from the same
-score vectors as GCM, retaining the original 170-cell null-screen membership.
+The NORD size audit uses the 170-cell null family.
 """
 
 from __future__ import annotations
@@ -93,13 +92,11 @@ def main():
                                observed.sort_index(), atol=1e-14)
     nord = paired_nord_summary(gcm, raw)
 
-    # Refresh only the displayed NORD null counts, preserving all 170 members
-    # of the original family. Yan and the 40-cell split family are untouched.
+    # Update NORD counts within the full 170-cell null family.
     archived = pd.read_csv(ROOT / "results/frozen_summary.csv")
     archived_null = archived[archived.delta.eq(0)].copy()
     replacement = nord[nord.delta.eq(0)].set_index(CURVE_KEYS)
-    # Keep only size inputs: nuisance diagnostics and confidence intervals from
-    # the old fit must not be carried beside refreshed rejection counts.
+    # Recompute size diagnostics from the updated rejection counts.
     updated_null = archived_null[KEYS + ["n_valid", "n_failed", "rejection_rate"]].copy()
     for index, row in updated_null.iterrows():
         key = tuple(row[k] for k in CURVE_KEYS)

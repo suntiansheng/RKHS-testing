@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Plot saved baseline comparisons in the existing CaSiNo figure style."""
+"""Plot CaSiNo comparisons using baseline covariates."""
 
 import argparse
 from pathlib import Path
