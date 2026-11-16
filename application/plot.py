@@ -518,7 +518,6 @@ def save_figure(fig: plt.Figure, output_dir: Path, stem: str) -> tuple[Path, Pat
     png_path = output_dir / f"{stem}.png"
     common_metadata = {
         "Title": stem,
-        "Author": "CaSiNo integrative-potential analysis",
         "Subject": "Publication figure",
         "Creator": PLOT_VERSION,
     }
